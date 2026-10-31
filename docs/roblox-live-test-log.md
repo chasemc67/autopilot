@@ -375,6 +375,17 @@ $ ruff check autopilot tools tests
 All checks passed!
 ```
 
+After round 6 (the gateway):
+
+```
+$ python -m pytest tests -q
+1 failed, 514 passed, 5 skipped in 287.07s
+FAILED tests/test_tactics.py::test_player_dead_is_falsy   (also fails with round 6's changes stashed: a wall-clock
+                                                            combat test, not touched by them)
+$ ruff check autopilot tools tests
+All checks passed!
+```
+
 State left behind: Roblox Studio open on the unsaved Baseplate ("Place1", the test game in it, never saved), the
 Autopilot plugin installed in `~/Documents/Roblox/Plugins` (`autopilot roblox uninstall` removes it), no
 `autopilot serve` or probe running.
