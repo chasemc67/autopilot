@@ -1,11 +1,13 @@
 --!strict
--- The player's hands, in the client agent. A Studio plugin can't make real key events (VirtualInputManager isn't
--- open to plugins; UserInputService's events can't be faked), so each key does what it usually means in a Roblox game:
+-- The player's hands, in the client agent. A Studio plugin can't make real key events (VirtualInputManager and
+-- ContextActionService:CallFunction are Roblox's own: checked live), so each key does what it usually means in a
+-- Roblox game:
 --   W A S D / arrows -> Humanoid:Move (camera-relative), SpaceBar -> Humanoid.Jump, MouseX / MouseY -> the camera turns,
 --   One..Nine -> equip the backpack's n-th Tool, LeftMouseButton -> the equipped Tool's Activate,
---   a key a ProximityPrompt in reach asks for -> InputHoldBegin / InputHoldEnd,
---   any key a ContextActionService action is bound to -> ContextActionService:CallFunction.
--- `input` presses a ContextActionService action, or a ProximityPrompt by its ActionText or name.
+--   a key a ProximityPrompt in reach asks for -> InputHoldBegin / InputHoldEnd.
+-- The bridge sends only the movement, camera and mouse keys here when Roblox Studio's MCP server is in use: it presses
+-- every other key for real (autopilot/roblox_bridge.py). `input` presses a ProximityPrompt by its ActionText or name;
+-- for a ContextActionService action it names the action's key (`host_keys`), which the bridge presses for real.
 -- Holds are leased (let go when not renewed) or timed (`seconds` of game time), as the other engines' plugins do.
 
 local ContextActionService = game:GetService("ContextActionService")

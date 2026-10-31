@@ -916,3 +916,27 @@ def test_what_the_game_said_before_anyone_listened_is_kept_for_the_episode():
     link.listeners.clear()
     link.feed({"type": "events", "events": [{"kind": "session", "running": True}]})  # (a new play test)
     assert not link.backlog
+
+
+def test_studio_mcp_finds_studio_again_after_a_restart(tmp_path):
+    from autopilot import studio_mcp
+
+    exe = tmp_path / "StudioMCP"
+    exe.write_text("")
+    sm = studio_mcp.StudioMCP(path=str(exe))
+    studios = {"now": "old"}
+    calls = []
+
+    def call(tool, args, timeout=None):
+        calls.append((tool, args.get("studio_id")))
+        if tool == "list_roblox_studios":
+            return [{"type": "text", "text": '{"studios": [{"id": "%s", "name": "Place1"}]}' % studios["now"]}]
+        if args["studio_id"] != studios["now"]:
+            raise studio_mcp.StudioMCPError("The requested `studio_id` is not connected")
+        return [{"type": "image", "data": base64.b64encode(_jpeg(8, 8)).decode()}]
+
+    sm.call = call
+    assert sm.capture("Place1")[:2] == b"\xff\xd8" and sm.studio == ("old", "Place1")
+    studios["now"] = "new"  # (Studio restarted: a new id for the same place)
+    assert sm.capture("Place1")[:2] == b"\xff\xd8" and sm.studio == ("new", "Place1")
+    assert calls[-3:] == [("screen_capture", "old"), ("list_roblox_studios", None), ("screen_capture", "new")]

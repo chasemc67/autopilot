@@ -166,10 +166,21 @@ class StudioMCP:
         self.studio = (pick["id"], pick.get("name"))
         return pick["id"]
 
+    def on_studio(self, name, tool, arguments):
+        """A tool's call on the Studio whose place is `name`. Studio's id changes when Studio restarts: a call that
+        fails on the id kept from before is tried once more on the Studio found again."""
+        kept = self.studio
+        try:
+            return self.call(tool, {"studio_id": self.choose(name), **arguments})
+        except StudioMCPError:
+            if kept is None:
+                raise
+            self.studio = None
+            return self.call(tool, {"studio_id": self.choose(name), **arguments})
+
     def capture(self, name):
         """The game viewport now, as JPEG bytes."""
-        sid = self.choose(name)
-        content = self.call("screen_capture", {"studio_id": sid, "capture_id": f"Autopilot_{int(time.time() * 1000)}"})
+        content = self.on_studio(name, "screen_capture", {"capture_id": f"Autopilot_{int(time.time() * 1000)}"})
         for c in content:
             if c.get("type") == "image" and c.get("data"):
                 return base64.b64decode(c["data"])
@@ -177,10 +188,8 @@ class StudioMCP:
 
     def keys(self, name, actions):
         """Real keyboard input in the play test's client: [{"action": "keyDown"|"keyUp"|"keyPress"|"wait", ...}]."""
-        self.call("user_keyboard_input", {"studio_id": self.choose(name), "datamodel_type": "Client",
-                                          "actions": actions})
+        self.on_studio(name, "user_keyboard_input", {"datamodel_type": "Client", "actions": actions})
 
     def mouse(self, name, actions):
         """Real mouse input in the play test's client: [{"action": "moveTo"|"mouseButtonClick"|..., ...}]."""
-        self.call("user_mouse_input", {"studio_id": self.choose(name), "datamodel_type": "Client",
-                                       "actions": actions})
+        self.on_studio(name, "user_mouse_input", {"datamodel_type": "Client", "actions": actions})

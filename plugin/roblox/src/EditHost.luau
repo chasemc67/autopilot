@@ -167,9 +167,27 @@ function EditHost.start(plugin: Plugin)
 		elseif kind == "status" then
 			dock:setStatus(tostring(frame.text or ""))
 		elseif kind == "result" then
+			-- (a claim's result: verdict and reason; a goal's or an exploration's: reached and notes. cli.result_frame)
 			local r = type(frame.result) == "table" and frame.result or {}
-			local head = r.verdict or r.outcome or "done"
-			dock:setResult(string.format("%s\n\n%s", tostring(head), tostring(r.summary or r.report or "")))
+			local head = r.verdict
+			if head == nil and r.kind == "goal" then
+				head = r.reached and "Goal reached" or "Goal not reached"
+			end
+			local lines = {}
+			if type(r.reason) == "string" and r.reason ~= "" then
+				table.insert(lines, r.reason)
+			end
+			if type(r.notes) == "table" then
+				for _, note in r.notes do
+					table.insert(lines, "- " .. tostring(note))
+				end
+			end
+			if type(r.alerts) == "table" then
+				for _, alert in r.alerts do
+					table.insert(lines, "! " .. tostring(alert))
+				end
+			end
+			dock:setResult(string.format("%s\n\n%s", tostring(head or "Done"), table.concat(lines, "\n")))
 			dock:setStatus("Finished")
 		elseif kind == "run_started" then
 			dock:setStatus("A run started from your coding agent")

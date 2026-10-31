@@ -131,3 +131,67 @@ Other findings this round:
   at random and never reads the state. Everything else in the e2e runs is real.
 - Run data is shared by default (`hello.share` absent = shared, which syncs memory with Aura). The Roblox plugin has
   no consent UI, so its hello now says `share: false`; the e2e runs also set `AUTOPILOT_SHARE=0`.
+
+## Round 3: 2026-10-31 13:55-14:15 PDT: latency and Studio's HttpService budget
+
+The first e2e run (round 4, Verification) showed the harness loop at **0.6 ticks a second**, each game read waiting
+~217 ms. `tools/roblox_latency.py` (through `tools/roblox_probe.py`) measured the plugin as built:
+
+```
+server op (context)          n= 20 median=   250 ms
+client op (pose)             n= 20 median=   250 ms  p90=   367 ms
+```
+
+Two requests per question (the poll that brings it, then a send with the answer), spaced by the 8-a-second cap.
+
+1. Cap raised to 30 a second (commit `1e86a60`): 67 ms per question, but a 90 s sustained run got 2.9 questions a
+   second, one 29 s stall and a 500 ms median, and Studio's console said
+   `Autopilot: HTTP request limit reached, now at most 15 / 7.5 / 4 a second` over and over. **Studio applies Roblox's
+   HttpService budget (about 500 requests a minute) to a plugin in the play server.** The original 8 a second sat
+   right at it.
+2. Redesign (commit `96d49f2`): **one request per question**. The poll that brings requests is followed, once their
+   answers are ready (up to 0.25 s), by the next poll carrying them, which waits at the bridge for the next request;
+   late answers go on their own, events ride the next poll (poll wait 2 s). Requests come from a token bucket: 7 a
+   second (420 a minute), bursts of 40.
+
+```
+$ python tools/roblox_latency.py -n 30
+server op (context)          n= 30 median=    17 ms  p90=    17 ms  max=    27 ms
+client op (pose)             n= 30 median=    67 ms  p90=   133 ms  max=   151 ms
+burst of 6 concurrent        n=  7 median=   283 ms
+sustained: 631 ops in 90 s (7.0/s), failures 0, median 149 ms, p90 151 ms, worst 153 ms
+```
+
+Studio's console afterwards: no limit warnings. In the next e2e run (Goal) the harness loop ran at **2.7 ticks a
+second** (4.5x), steps' median 132 ms.
+
+Start-up errors, again: the e2e runs' summaries showed the asset warning but not `SignText:3` although the plugin
+sends it (seen in the probe's frames). Two causes, both fixed:
+- The episode's runtime only listens once the episode starts, after the play test (re)started: fixed in the brain
+  (`bridge.keep_unheard`: a link keeps the log lines and findings that come while nobody listens, cleared when a new
+  play session starts; `Runtime.run` takes them first; commit `1e86a60`).
+- The play server sent its `session running` event after replaying the start-up log lines, so the new backlog was
+  cleared right after them: the event now goes first (commit `fba60c6`).
+
+## Round 4: 2026-10-31 13:00-14:40 PDT: the four prompt kinds, end to end
+
+Setup, for every run:
+
+```
+# the agent service (sharing off, the decision model's local stand-in, memory inside the repository)
+AUTOPILOT_SHARE=0 AUTOPILOT_JEV_STANDIN=random AUTOPILOT_MEMORY=$PWD/.e2e/memory autopilot serve
+# what `autopilot connect claude` installs, as a Claude Code plugin folder for one session
+python -m autopilot.connect plugin .e2e/plugin
+# from a scratch dir (.e2e/work), keychain unlocked
+claude --model claude-opus-5-5 -p "<prompt>" --permission-mode acceptEdits --plugin-dir .e2e/plugin \
+  --allowedTools mcp__plugin_autopilot_autopilot --output-format stream-json --verbose
+```
+
+From the Goal run on, the agent's other MCP servers (Roblox_Studio, xcode, the claude.ai connectors) were
+disallowed (`--disallowedTools`), so it could act on the game only through Autopilot. (The Verification run had them
+available and didn't use them: its transcript shows only Autopilot tools.)
+
+Every run: Claude Code loaded the `autopilot` skill, called `start_run`, read INSTRUCTIONS.md and the codex (the
+place's scripts), probed the live game, wrote `harness.py`, ran episodes (`run_harness`) in which the stand-in chose
+among the harness's options, and called `report`. Each episode was recorded through Studio's MCP server
+(`media/recording-N.mp4`). The dock showed the result.
