@@ -1,10 +1,12 @@
 """How this Autopilot runs, as the plugins' first-run setup and Settings page show it, and the Aura sign-in they ask for
 (docs/protocol.md, "Account").
 
-    account frame     {"type": "account", "mode": "aura"|"own_keys"|"none", "email"?, "signed_in", "keys": {...},
-                      "llm_provider", "bill"?, "out_of_credits"?}: sent after every welcome, after a sign-in or
-                      sign-out, after a run through Aura, and when the plugin asks ("account"). "keys" are the BYOK
-                      keys, masked, and "llm_provider" whose LLM key "llm" is ("anthropic" or "openai"). With Aura,
+    account frame     {"type": "account", "mode": "aura"|"own_keys"|"none", "via"?, "email"?, "signed_in",
+                      "keys": {...}, "llm_provider", "bill"?, "out_of_credits"?}: sent after every welcome, after a
+                      sign-in or sign-out, after a run through Aura, and when the plugin asks ("account"). "keys" are
+                      the BYOK keys, masked, and "llm_provider" whose LLM key "llm" is ("anthropic" or "openai").
+                      "via": "gateway" when runs go through Vercel AI Gateway (autopilot/gateway.py; mode "own_keys"),
+                      and keys.gateway says its key is set ("••••", none of it shown). With Aura,
                       "bill" is what Aura billed for Autopilot this billing period ({"usd", "runs", "from", "to"}, or
                       null until Aura says), and "out_of_credits" Aura's words when the team has no credits left for a
                       run ({"message", "url"}: where to add some, when Aura names it), else null
@@ -29,7 +31,7 @@ import time
 
 import requests
 
-from . import aura, aura_login, bridge
+from . import aura, aura_login, bridge, gateway
 
 PREFERENCES = "preferences.json"
 USER_ENV = "autopilot.env"  # the BYOK keys (and settings) the first-run setup saved, for the agent service
@@ -287,10 +289,21 @@ def state():
         signed_in = bool(kept) or aura.app_running()
         frame.update(mode="aura", signed_in=signed_in, email=(kept or {}).get("email"),
                      bill=bill() if signed_in else None, out_of_credits=out_of_credits() if signed_in else None)
+    elif gateway.enabled():
+        # Jev and the language models through Vercel AI Gateway, one key for all: shown set, never any of it. The
+        # plugins know the modes above only (another reads as "none": their first-run setup again), so the mode is
+        # "own_keys", the key the user's own, and "via" says the gateway
+        frame["keys"]["gateway"] = GATEWAY_SET
+        frame["keys"]["decision"] = frame["keys"]["decision"] or GATEWAY_SET
+        frame["keys"]["llm"] = frame["keys"]["llm"] or GATEWAY_SET
+        frame.update(mode="own_keys", via="gateway", signed_in=bool(kept), email=(kept or {}).get("email"))
     else:
         mode = "own_keys" if access == "own_keys" or any(frame["keys"].values()) else "none"
         frame.update(mode=mode, signed_in=bool(kept), email=(kept or {}).get("email"))
     return frame
+
+
+GATEWAY_SET = "••••"  # the account frame's gateway key: set (no character of it is shown)
 
 
 def send_state(link):

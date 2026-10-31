@@ -58,21 +58,27 @@ class Usage:
     def __init__(self):
         self.lock = threading.Lock()
         self.models = {}
+        self.costs = {}  # (kind, model) -> US dollars, as the API said (Vercel AI Gateway says each call's)
         self.version = 0
 
-    def add(self, kind, model, input=0, output=0, cache_read=0, cache_write=0, calls=1):
+    def add(self, kind, model, input=0, output=0, cache_read=0, cache_write=0, calls=1, cost_usd=None):
         key = (kind, str(model or "unknown"))
         with self.lock:
             m = self.models.setdefault(key, dict.fromkeys(self.FIELDS, 0))
             for field, n in zip(self.FIELDS, (calls, input, output, cache_read, cache_write)):
                 m[field] += max(0, int(n or 0))
+            if cost_usd:
+                self.costs[key] = self.costs.get(key, 0.0) + max(0.0, float(cost_usd))
             self.version += 1
 
     def snapshot(self):
-        """The models as the `usage` message lists them: the language model's first, then the decision model's."""
+        """The models as the `usage` message lists them: the language model's first, then the decision model's (with
+        "cost_usd" where the API said what the calls cost)."""
         with self.lock:
             items = sorted(self.models.items(), key=lambda kv: (kv[0][0] != "llm", kv[0][1]))
-            return [{"kind": kind, "model": model, **m} for (kind, model), m in items]
+            return [{"kind": kind, "model": model, **m,
+                     **({"cost_usd": round(self.costs[kind, model], 9)} if (kind, model) in self.costs else {})}
+                    for (kind, model), m in items]
 
     def totals(self):
         """{kind: {field: n}} summed over models."""
@@ -95,11 +101,23 @@ class CountingJev:
         r = self._client.system_one(*args, **kwargs)
         u = getattr(r, "usage", None)
         self._usage.add("decision", getattr(r, "model", None), input=getattr(u, "input_tokens", 0) or 0,
-                        output=getattr(u, "output_tokens", 0) or 0)
+                        output=getattr(u, "output_tokens", 0) or 0, cost_usd=decision_cost(r))
         return r
 
     def __getattr__(self, name):
         return getattr(self._client, name)
+
+
+def decision_cost(r):
+    """What a decision model's call cost in US dollars, where its API said (Vercel AI Gateway's
+    provider_metadata.gateway.cost in the response body), else None."""
+    raw = getattr(r, "raw_http_response", None)
+    try:
+        body = json.loads(raw.content) if raw is not None else getattr(r, "raw", None)
+        cost = ((body or {}).get("provider_metadata") or {}).get("gateway", {}).get("cost")
+        return float(cost) if cost is not None else None
+    except (ValueError, TypeError, AttributeError):
+        return None
 
 
 def llm_usage(body):
@@ -117,9 +135,11 @@ def llm_usage(body):
     prompt = u.get("prompt_tokens", u.get("input_tokens")) or 0
     details = u.get("prompt_tokens_details") or u.get("input_tokens_details") or {}
     cached = (details.get("cached_tokens") or 0) if isinstance(details, dict) else 0
-    return body.get("model"), {"input": max(0, prompt - cached),
-                               "output": u.get("completion_tokens", u.get("output_tokens")) or 0,
-                               "cache_read": cached, "cache_write": 0}
+    out = {"input": max(0, prompt - cached), "output": u.get("completion_tokens", u.get("output_tokens")) or 0,
+           "cache_read": cached, "cache_write": 0}
+    if isinstance(u.get("cost"), (int, float)):  # (Vercel AI Gateway's chat completions say what the call cost)
+        out["cost_usd"] = u["cost"]
+    return body.get("model"), out
 
 
 # -- the language model's calls -------------------------------------------------------------------------------------

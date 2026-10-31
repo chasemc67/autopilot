@@ -108,19 +108,23 @@ def jev_client(warm=True):
     (the model list) is made at once and whenever Jev has been idle for WARM_EVERY: a decision made after an idle
     stretch, a dodge, never waits on a new connection or a server waking. Bodies go uncompressed: the SDK
     zstd-compresses them wherever zstd is importable (Python 3.14+), and Aura's relay doesn't pass Content-Encoding
-    on to TypeSafe."""
+    on to TypeSafe. With a gateway key (autopilot/gateway.py) Jev is reached through Vercel AI Gateway (its
+    TypeSafe-compatible API, the gateway key), else TYPESAFE_BASE_URL / TYPESAFE_API_KEY (TypeSafe's, or Aura's relay
+    in a run through Aura)."""
     if standin():
         return StandInJev(standin())
     import httpx2
     from dotenv import load_dotenv
     from typesafe_sdk import TypeSafeClient
 
+    from . import gateway
+
     load_dotenv()
     used = [time.monotonic()]
     http = httpx2.Client(timeout=1.0, limits=httpx2.Limits(keepalive_expiry=KEEPALIVE),
                          event_hooks={"request": [lambda request: used.__setitem__(0, time.monotonic())]})
     client = TypeSafeClient(timeout=1.0, retry=RetryPolicy(max_retries=1, backoff_initial=0.05, timeout=JEV_TIMEOUT),
-                            http_client=http, compression=False, model=jev_model())
+                            http_client=http, compression=False, model=jev_model(), **gateway.jev())
     if warm:
         threading.Thread(target=_keep_warm, args=(weakref.ref(client), http, used), name="jev-warm",
                          daemon=True).start()

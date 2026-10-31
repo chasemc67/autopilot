@@ -45,11 +45,13 @@ from . import (
     aura_memory,
     bridge,
     engines,
+    gateway,
     memory,
     processes,
     runtime,
     telemetry,
     training,
+    vision,
 )
 from . import codex as codexmod
 from . import levels as levelsmod
@@ -639,7 +641,8 @@ def run_prompt(link, prompt, path=None, model=None, timeout=None, stop=None, sen
             account.note_credits(e.message)
             credits_refused = True
     else:
-        with run or contextlib.nullcontext(), contextlib.ExitStack() as setup:
+        # (not through Aura: through Vercel AI Gateway when there is a gateway key, autopilot/gateway.py)
+        with run or gateway.run(), contextlib.ExitStack() as setup:
             if not kind:
                 kind, tested = told_kind(link, prompt)
             asked, play_seconds = settle()
@@ -666,13 +669,15 @@ def run_prompt(link, prompt, path=None, model=None, timeout=None, stop=None, sen
             info = {"through_aura": bool(run), "aura_run": getattr(run, "run_id", None)}
             before = memory.snapshot(root)
             provider = getattr(agent, "current_provider", lambda: "anthropic")()
-            # (through Aura, frames are described by its Claude whatever the agent plays: that relay is proxied too)
-            seen_by = "anthropic" if run else provider
+            # (through Aura, frames are described by its Claude whatever the agent plays: that relay is proxied too;
+            # through the gateway, by a model on it: the agent's when it takes pictures, else Claude)
+            seen_by = "anthropic" if run else vision.GATEWAY if gateway.enabled() else provider
             with telemetry.RunTelemetry(link, os.path.join(root, "runs", run_id), run_id, project, prompt, kind,
                                         share, providers=tuple(dict.fromkeys((provider, seen_by))),
                                         info=info) as tel:
                 # (describe_frames: the recording's frames, described by a vision model of the agent's provider)
-                describer = tel.describer(model or agent_model(seen_by), provider=seen_by)
+                describer = tel.describer(model or agent_model(provider if seen_by == vision.GATEWAY else seen_by),
+                                          provider=seen_by)
                 started = time.time()
                 report = agent.implement(game, project, asked, run_id=run_id,
                                          say=lambda text: link.status(plain_words(text)), activity=activity,
@@ -867,7 +872,7 @@ def cmd_run(link, args):
     except aura.Refused as e:
         print(e.message)
         return 1
-    with run or contextlib.nullcontext():
+    with run or gateway.run():
         if not args.no_restart:
             game.restart()
         game.pause(False)
@@ -880,14 +885,17 @@ def cmd_run(link, args):
 
 
 def decision_key_missing():
-    """Why a run with the user's own keys can't start (its decision model has no key; a run through Aura needs none),
-    or None. Told to the user's own agent (`autopilot mcp`): the key goes in the file, never into its conversation."""
-    if aura.enabled() or (os.environ.get("TYPESAFE_API_KEY") or "").strip() or runtime.standin():
+    """Why a run with the user's own keys can't start (its decision model has no key; a run through Aura or Vercel AI
+    Gateway needs no TypeSafe key), or None. Told to the user's own agent (`autopilot mcp`): the key goes in the file,
+    never into its conversation."""
+    if aura.enabled() or gateway.enabled() or (os.environ.get("TYPESAFE_API_KEY") or "").strip() or \
+            runtime.standin():
         return None
-    return ("Autopilot needs a key for its decision model, the one that plays the game (TypeSafe: "
-            f"https://typesafe.ai). Add the line TYPESAFE_API_KEY=<the key> to {account._user_env_path()}, or enter it "
-            "in the Autopilot tab's account setup in the editor (or choose Aura there). Don't paste the key into this "
-            "conversation. Then call start_run again.")
+    return ("Autopilot needs a key for its decision model, the one that plays the game: a Vercel AI Gateway key "
+            f"(the line AI_GATEWAY_API_KEY=<the key> in {gateway._file_path()}) or a TypeSafe key "
+            f"(https://typesafe.ai: the line TYPESAFE_API_KEY=<the key> in {account._user_env_path()}, or the "
+            "Autopilot tab's account setup in the editor, where Aura can be chosen too). Don't paste the key into "
+            "this conversation. Then call start_run again.")
 
 
 def external_run(params):

@@ -1633,6 +1633,9 @@ def scrub(value):
     """value with every secret's value replaced by [secret] (strings, dicts and lists, recursively). Applied to all
     that goes to the plugin from model-influenced code: status lines, inspector frames, the report."""
     secrets = [v for v in (os.environ.get(k, "") for k in os.environ if SECRET.search(k)) if v and len(v) >= 8]
+    from ..redact import _gateway_key
+
+    secrets += [v for v in [_gateway_key()] if v and v not in secrets]  # (kept in gateway.env, not the environment)
     if not secrets:
         return value
     if isinstance(value, str):

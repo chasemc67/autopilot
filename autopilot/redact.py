@@ -1,9 +1,10 @@
 """What is taken out of a run's data before it is shared (autopilot/dataset.py, docs/run-data.md).
 
-    secrets    API keys and tokens by their shape (Anthropic, OpenAI, Aura's run and install tokens, Google, AWS,
-               GitHub, Slack, JWTs, PEM private keys, `Bearer ...`), the values of this machine's secret environment
-               variables, and any value assigned to a secret-sounding name (`SecurityToken=...`, `"api_key": "..."`):
-               each becomes `[secret]`
+    secrets    API keys and tokens by their shape (Anthropic, OpenAI, Vercel AI Gateway, Aura's run and install
+               tokens, Google, AWS, GitHub, Slack, JWTs, PEM private keys, `Bearer ...`), the values of this machine's
+               secret environment variables and its gateway key (autopilot/gateway.py, wherever it is kept), and any
+               value assigned to a secret-sounding name (`SecurityToken=...`, `"api_key": "..."`): each becomes
+               `[secret]`
     path       the project's folder in a path (as written in text and in JSON, in any letter case): `<project>`,
                keeping what follows (`<project>/Assets/Scripts/Player.cs`)
     home       the user's home folder in a path (`C:\\Users\\<name>`, `/Users/<name>`, `/home/<name>`): `~`
@@ -32,6 +33,7 @@ SECRET = "[secret]"
 TOKENS = re.compile("|".join((
     r"-----BEGIN [A-Z ]*PRIVATE KEY-----.*?-----END [A-Z ]*PRIVATE KEY-----",
     r"\bsk-ant-[A-Za-z0-9_-]{16,}",
+    r"\bvck_[A-Za-z0-9_-]{16,}",  # (Vercel AI Gateway's keys)
     r"\bsk-(?:proj-|svcacct-|admin-)?[A-Za-z0-9_-]{20,}",
     r"\bgr[ti]1\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_.-]{8,}",
     r"\bAIza[0-9A-Za-z_-]{30,}",
@@ -88,9 +90,12 @@ class Redactor:
     where the run's project is on it (its folder, or Unreal's .uproject), if known."""
 
     def __init__(self, env=None, user=None, host=None, home=None, project=None):
+        mine = env is None
         env = os.environ if env is None else env
-        self.secrets = sorted({v for k, v in env.items() if SECRET_ENV.search(k) and v and len(v) >= 8},
-                              key=len, reverse=True)
+        secrets = {v for k, v in env.items() if SECRET_ENV.search(k) and v and len(v) >= 8}
+        if mine:  # (this machine's gateway key, wherever it is kept: autopilot/gateway.py)
+            secrets |= set(filter(None, [_gateway_key()]))
+        self.secrets = sorted(secrets, key=len, reverse=True)
         self.user = _word(_user() if user is None else user)
         self.host = _word(platform.node() if host is None else host)
         # (the longer first: a computer name often holds the user name, JDOE-PC)
@@ -194,6 +199,16 @@ class Redactor:
         if n:
             self.counts[kind] += n
         return out
+
+
+def _gateway_key():
+    try:
+        from .gateway import key
+
+        value = key()
+        return value if value and len(value) >= 8 else None
+    except Exception:  # noqa: BLE001 - (no settings folder, no dotenv: no key to take out)
+        return None
 
 
 def _user():

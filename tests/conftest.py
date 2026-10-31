@@ -49,6 +49,17 @@ def no_user_settings(tmp_path, monkeypatch):
 
 
 @pytest.fixture(autouse=True)
+def no_gateway_key(tmp_path, monkeypatch):
+    """Tests never read this machine's Vercel AI Gateway key (autopilot/gateway.py: the environment's, gateway.env):
+    without one set by a test, nothing goes through the gateway."""
+    from autopilot import gateway
+
+    monkeypatch.setattr(gateway, "_file_path", lambda: str(tmp_path / "gateway.env"))
+    for name in (gateway.KEY_ENV, gateway.SWITCH, "AUTOPILOT_GATEWAY_URL"):
+        monkeypatch.delenv(name, raising=False)
+
+
+@pytest.fixture(autouse=True)
 def no_jev_kinds(monkeypatch):
     """Tests never ask Jev the kind of a run (autopilot/cli.py classify): its first words decide, never a test. The
     real classify is the fixture's value, for a test of it."""

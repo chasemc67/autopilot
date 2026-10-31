@@ -58,6 +58,12 @@ ROUTES = {
                ("GEMINI_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY", "GOOGLE_API_KEY"), None, "/openai/chat/completions"),
 }
 NO_VISION = {"deepseek": "DeepSeek's models can't look at pictures"}
+# Through Vercel AI Gateway (autopilot/gateway.py: "gateway", the describer's provider whenever runs go through it): a
+# Claude model on Anthropic's wire at the gateway's root, any other on OpenAI's chat completions at <gateway>/v1. The
+# model is AUTOPILOT_VISION_MODEL, else the agent's when it takes pictures, else MODEL; one the gateway refuses gives
+# way to FALLBACK, on Anthropic's wire
+GATEWAY = "gateway"
+NO_PICTURES = ("deepseek",)  # (models whose names start so can't look at pictures: MODEL describes instead)
 
 SYSTEM = """You describe frames of a video game for someone who can't see them. You are not told what they are
 checking, and you don't guess it: you say what is visible, as exactly as you can.
@@ -79,6 +85,8 @@ SWEEP = ("Last: anything in these frames that looks unusual for a game's picture
 
 def route(provider, agent_model=None):
     """(wire, API root, key, model, path) that describe frames for an agent on provider, else (None, why)."""
+    if provider == GATEWAY:
+        return gateway_route(agent_model)
     if provider in NO_VISION:
         return None, NO_VISION[provider]
     if provider not in ROUTES:
@@ -90,6 +98,23 @@ def route(provider, agent_model=None):
         return None, f"there is no {provider} key"
     model = (os.environ.get("AUTOPILOT_VISION_MODEL") or "").strip() or model or agent_model
     return (wire, root, key, model, path), None
+
+
+def gateway_route(agent_model=None):
+    """route() through Vercel AI Gateway (GATEWAY)."""
+    from . import gateway
+
+    key = gateway.key()
+    if not key:
+        return None, "there is no gateway key"
+    model = (os.environ.get("AUTOPILOT_VISION_MODEL") or "").strip()
+    if not model:
+        sees = agent_model and not any(w in str(agent_model).lower() for w in NO_PICTURES)
+        model = agent_model if sees else MODEL
+    named = gateway.model_id(model)
+    if named.startswith("anthropic/") or str(model).startswith("claude-"):
+        return ("anthropic", gateway.url(), key, model if "/" not in model else named, None), None
+    return ("openai", gateway.url() + gateway.OPENAI_PATH, key, named, "/chat/completions"), None
 
 
 class Frames:
@@ -277,7 +302,16 @@ class Describer:
                     raise
                 self.route = (wire, root, key, FALLBACK, path)  # (for the rest of the run)
                 return self._anthropic(root, key, FALLBACK, parts)
-        return self._openai(root + path, key, model, parts)
+        try:
+            return self._openai(root + path, key, model, parts)
+        except Exception as e:
+            if self.provider != GATEWAY or not _refused_model(e):
+                raise
+            from . import gateway
+
+            # (the gateway refused the model: Claude describes, on Anthropic's wire, for the rest of the run)
+            self.route = ("anthropic", gateway.url(), key, FALLBACK, None)
+            return self._anthropic(gateway.url(), key, FALLBACK, parts)
 
     def _anthropic(self, root, key, model, parts):
         import anthropic
@@ -312,7 +346,7 @@ class Describer:
                                              {"role": "user", "content": content}]},
                           timeout=TIMEOUT)
         if r.status_code >= 400:
-            raise RuntimeError(f"HTTP {r.status_code}: {r.text[:300]}")
+            raise HTTPError(r.status_code, f"HTTP {r.status_code}: {r.text[:300]}")
         body = r.json()
         self._count(url, body)
         choice = (body.get("choices") or [{}])[0]
@@ -343,6 +377,14 @@ class Describer:
                 f.write(json.dumps(line, default=str) + "\n")
         except OSError as e:
             print(f"note: a description wasn't logged: {e}")
+
+
+class HTTPError(RuntimeError):
+    """An OpenAI-wire API's error answer (its status in status_code, as Anthropic's SDK's errors have it)."""
+
+    def __init__(self, status_code, message):
+        super().__init__(message)
+        self.status_code = status_code
 
 
 def _refused_model(e):

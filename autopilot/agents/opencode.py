@@ -39,7 +39,11 @@ DEFAULT_PROVIDER = "anthropic"  # OpenCode's provider when AUTOPILOT_OPENCODE_PR
 PROVIDER_KEYS = {"anthropic": ("ANTHROPIC_API_KEY",), "openai": ("OPENAI_API_KEY",),
                  "opencode": ("OPENCODE_API_KEY",), "openrouter": ("OPENROUTER_API_KEY",),
                  "deepseek": ("DEEPSEEK_API_KEY",),
-                 "google": ("GEMINI_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY", "GOOGLE_API_KEY")}
+                 "google": ("GEMINI_API_KEY", "GOOGLE_GENERATIVE_AI_API_KEY", "GOOGLE_API_KEY"),
+                 # Vercel AI Gateway (models.dev's "vercel", the AI SDK's gateway provider): what a run through the
+                 # gateway switches every provider but Anthropic to (autopilot/gateway.py), its models named
+                 # <provider>/<model>
+                 "vercel": ("AI_GATEWAY_API_KEY",)}
 # OpenCode's own tools the model keeps; the rest (shell, web fetch and search, subagents, questions, skills...) go
 KEEP_TOOLS = ("read", "glob", "grep", "edit", "write", "patch")
 
