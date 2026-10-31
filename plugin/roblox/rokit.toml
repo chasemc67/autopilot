@@ -1,0 +1,5 @@
+# The Luau tools this plugin is checked and built with (https://github.com/rojo-rbx/rokit): `rokit install` here.
+[tools]
+rojo = "rojo-rbx/rojo@7.7.1"
+selene = "kampfkarren/selene@0.32.0"
+stylua = "johnnymorganz/stylua@2.6.0"
