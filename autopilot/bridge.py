@@ -1,5 +1,5 @@
-"""The link between the brain and the plugin in the game (Unreal, Unity or Godot). The wire format is in
-docs/protocol.md.
+"""The link between the brain and the plugin in the game (Unreal, Unity, Godot or Roblox Studio). The wire format is
+in docs/protocol.md; Roblox's plugin reaches it over HTTP instead (autopilot/roblox_bridge.py, docs/roblox.md).
 
 The plugin connects out to the brain over a WebSocket; ``serve_local()`` listens for it on this machine and returns a
 ``Link`` once the plugin has said hello. Through the link the brain sends requests to the game (``request``, ``post``)
@@ -393,9 +393,11 @@ def announce(url, path=None, extra=None):
     atexit.register(withdraw)
 
 
-def serve_local(host="127.0.0.1", port=8765, wait=None, role="cli", announce_as=BRAIN_FILE, extra=None):
+def serve_local(host="127.0.0.1", port=8765, wait=None, role="cli", announce_as=BRAIN_FILE, extra=None,
+                roblox_port=None):
     """Listen for the plugin on this machine and return the Link once it has said hello (a service says where it is
-    in brain_file(announce_as), with extra: announce()). Keeps
+    in brain_file(announce_as), with extra: announce()). A Roblox Studio plugin says hello over HTTP instead, on
+    roblox_port (autopilot/roblox_bridge.py; None: AUTOPILOT_ROBLOX_PORT, else 8766; 0: none). Keeps
     listening afterwards: a plugin that reconnects (e.g. after the editor restarts) takes over the link's
     place in a fresh Link, available from the returned link's .server.current. A plugin that closed with RELOAD_CLOSE
     and says hello with {"resume": <its session>} within RESUME_SECONDS gets its own Link back: the same run goes on,
@@ -473,13 +475,42 @@ def serve_local(host="127.0.0.1", port=8765, wait=None, role="cli", announce_as=
 
     server = serve(handler, host, port, max_size=None)
     threading.Thread(target=server.serve_forever, daemon=True).start()
+    roblox = _serve_roblox(host, roblox_port, state, ready)
     if role == "service" and announce_as:  # (a brain that stays: the plugins may find it by brain_file())
-        announce(f"ws://{host}:{server.socket.getsockname()[1]}/v1/bridge", brain_file(announce_as), extra)
+        more = {**(extra or {}), **({"roblox": roblox.url} if roblox else {})}
+        announce(f"ws://{host}:{server.socket.getsockname()[1]}/v1/bridge", brain_file(announce_as), more)
     try:
         link = ready.get(timeout=wait)
     except queue.Empty:
         server.shutdown()
+        if roblox:
+            roblox.shutdown()
         raise TimeoutError(f"the plugin didn't connect to ws://{host}:{port} within {wait}s")
     link.server = server
     link.server_state = state
+    link.roblox = roblox
     return link
+
+
+def _serve_roblox(host, port, state, ready):
+    """The Roblox Studio plugin's HTTP front door (autopilot/roblox_bridge.py) beside the WebSocket: its sessions are
+    links like a WebSocket plugin's, handed out the same way. port: None for AUTOPILOT_ROBLOX_PORT (default 8766), 0
+    for none. None when there is none (or its port is taken: the other engines go on)."""
+    from . import roblox_bridge
+
+    port = roblox_bridge.port() if port is None else port
+    if not port:
+        return None
+
+    def on_link(link):
+        state["sessions"][link.session] = link
+        state["current"] = link
+        ready.put(link)
+
+    try:
+        rb = roblox_bridge.RobloxBridge(on_link, host, port)
+    except OSError as e:
+        print(f"note: no Roblox bridge on http://{host}:{port} ({e})", file=sys.stderr)
+        return None
+    print(f"Waiting for Roblox Studio on {rb.url} ...")
+    return rb

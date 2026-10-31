@@ -337,8 +337,8 @@ def teleport(game, to, actor=None, why="research"):
     """Move the player's pawn (or `actor`) to `to`: a Vec/point, an actor path (then 150 units short of it, on the side
     facing it, facing it) or a dict ({"near": path, "distance": 300}, or a point as {"X","Y","Z"}). A direct change to
     the game, not play: for setting up a measurement in a probe (reported with `why`, like game.set). Unreal:
-    K2_TeleportTo; Unity: the Transform's position; Godot: global_position. Returns {"actor", "asked", "at", "landed":
-    whether it is within 100 of where it was asked, "note"?}."""
+    K2_TeleportTo; Unity: the Transform's position; Godot: global_position; Roblox: the model's pivot. Returns
+    {"actor", "asked", "at", "landed": whether it is within 100 of where it was asked, "note"?}."""
     actor = actor or game.pawn
     if not actor:
         raise GameError("teleport: no player pawn now (dead? a menu?): give actor=")
@@ -367,6 +367,8 @@ def teleport(game, to, actor=None, why="research"):
             game.set(actor, "position", game.to_native(point), why=why)
         elif name == "godot":
             game.set(actor, "global_position", game.to_native(point), why=why)
+        elif name == "roblox":  # (the plugin's "Pivot": Model:PivotTo, keeping its rotation)
+            game.set(actor, "Pivot", game.to_native(point), why=why)
         else:
             raise GameError(f"teleport: no way to move an actor in a {name or 'unknown'} game yet")
         time.sleep(0.1)

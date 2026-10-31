@@ -153,6 +153,18 @@ def no_real_uv(monkeypatch):
     monkeypatch.setattr(uninstall, "_uv", lambda exe, *args: pytest.fail(f"a test ran the real uv: {args}"))
 
 
+@pytest.fixture(autouse=True)
+def no_roblox_bridge(tmp_path, monkeypatch):
+    """Tests never open the Roblox bridge's port beside serve_local's WebSocket, nor read or make this machine's
+    Roblox token (autopilot/roblox_bridge.py): a test of the bridge starts its own."""
+    from autopilot import roblox_bridge
+
+    monkeypatch.setenv("AUTOPILOT_ROBLOX_PORT", "0")
+    monkeypatch.delenv("AUTOPILOT_ROBLOX_TOKEN", raising=False)
+    monkeypatch.delenv(roblox_bridge.SCREENSHOT_ENV, raising=False)
+    monkeypatch.setattr(roblox_bridge, "token_path", lambda: str(tmp_path / "roblox_token"))
+
+
 @pytest.fixture
 def in_tmp(tmp_path, monkeypatch):
     """Run in an empty directory, so files a test writes go there."""
