@@ -808,7 +808,7 @@ def answer_again(link, hello, done):
 def cmd_codex(args):
     eng, path = engines.find_project(args.path)
     if not eng:
-        print(f"No Unreal, Unity or Godot project at {args.path}")
+        print(f"No Unreal, Unity, Godot or Roblox project at {args.path}")
         return 1
     project = args.name or eng.project_name(path)
     remember_project(project, path, eng)
@@ -1053,9 +1053,11 @@ SERVER_HELP = f"the Aura server (default: AUTOPILOT_AURA_URL, else AUTOPILOT_AUR
 
 
 def parser():
-    ap = argparse.ArgumentParser(prog="autopilot", description="Automated playtesting for Unreal, Unity and Godot.")
+    ap = argparse.ArgumentParser(prog="autopilot",
+                                 description="Automated playtesting for Unreal, Unity, Godot and Roblox Studio.")
     sub = ap.add_subparsers(dest="cmd", required=True)
-    project_help = "the game's project on this machine: a .uproject, a Unity project folder or a project.godot"
+    project_help = ("the game's project on this machine: a .uproject, a Unity project folder, a project.godot, or a "
+                    "Roblox Rojo project folder or .rbxlx place file")
     s = sub.add_parser("serve", help="run what the editor's Autopilot tab starts")
     s.add_argument("--port", type=int, default=8765)
     s.add_argument("--project", dest="path", help=project_help)
@@ -1098,6 +1100,17 @@ def parser():
                                         "frame describer (autopilot/connect.py)")
     co.add_argument("client", choices=("claude", "codex"))
     co.add_argument("--remove", action="store_true", help="take out what connect set up")
+    rb = sub.add_parser("roblox", help="the Roblox Studio plugin on this computer: install, build, status, uninstall "
+                                       "(autopilot/roblox_tools.py, docs/roblox.md)")
+    rb.add_argument("action", choices=("install", "build", "status", "uninstall"))
+    rb.add_argument("--plugins-dir", help="Studio's Plugins folder (default: ~/Documents/Roblox/Plugins on macOS, "
+                                          "%%LOCALAPPDATA%%\\Roblox\\Plugins on Windows)")
+    rb.add_argument("--source", help="the plugin to install: a plugin/roblox folder, or an Autopilot.server.lua built "
+                                     "already (default: the repository's plugin/roblox)")
+    rb.add_argument("--url", help="the bridge's address to bake in (default: http://127.0.0.1:8766/v1/roblox)")
+    rb.add_argument("--out", help="build: where to write the plugin (default: ./Autopilot.server.lua)")
+    rb.add_argument("--with-token", action="store_true", help="build: bake this computer's bridge token in")
+    rb.add_argument("--show-token", action="store_true", help="status: print the bridge token too")
     return ap
 
 
@@ -1108,6 +1121,10 @@ def main(argv=None):
         from . import uninstall
 
         return uninstall.main(args)
+    if args.cmd == "roblox":  # (files on this computer only: no agent service, no keys)
+        from . import roblox_tools
+
+        return roblox_tools.main(args)
     if args.cmd == "mcp":  # (started by the user's Claude Code or Codex: stdout is the protocol's, the service runs)
         from . import mcp
 
