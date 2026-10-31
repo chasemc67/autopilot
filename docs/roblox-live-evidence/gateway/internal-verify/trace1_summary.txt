@@ -1,0 +1,57 @@
+Harness CoinTouchHarness  goal: 'Walk into coins to collect them; each touched coin should add its value to leaderstats Coins'
+Ended: status done at t=20.2s  status=done note='each touched coin raised leaderstats Coins by its Value' evidence={"start_coins": 0, "pickups": [{"coin": "Coin1", "value_attr": 1, "coins_before": 0, "coins_after": 1, "t": 5.63}, {"coin": "Coin3", "value_attr": 2, "coins_before": 1, "coins_after": 3, "t": 11.48}, {"coin": "Coin2", "value_attr": 1, "coins_before": 3, "coins_after": 4, "t": 19.77}], "final_coins": 4}
+Decisions by Jev: 11 (jev-1.13.0, via gateway)
+
+Options (started / worked / failed / unknown / interrupted / timed out):
+  touch_coin_1: 2 / 2 / 0 / 0 / 0 / 0 / 0
+  touch_coin_2: 1 / 1 / 0 / 0 / 0 / 0 / 0
+  touch_coin_1 ended because: coin taken x2
+  touch_coin_2 ended because: coin taken x1
+
+Executor steps (steps, ms a step median/p90/max, waits on the game a step mean/max; a tick is 67 ms at tick_hz 15, the loop ran 1.1 ticks/s):
+  touch_coin_1: 10 steps, 848/1054/1054 ms, 4.0/10 waits
+  touch_coin_2: 8 steps, 851/866/866 ms, 3.4/6 waits
+  (idle): 4 steps, 0/0/0 ms, 0.0/0 waits
+  SLOW STEPS: touch_coin_1 (~848 ms a step, 4.0 waits of ~212 ms). Every read waits for the game's answer (about a frame) and reads one after another add up: a step reacts to what it read that long ago, and the next step comes that much later. Gather a step's reads into one game.batch([...]) (one wait) and read only what the step needs. A reaction timed to the game (dodging before a hit lands, jumping at an edge) must allow for the step time, which changes with the frame rate.
+
+Timeline (t: option, p, how it ended, seconds):
+  t=   0.9 touch_coin_1 p=1.00 -> worked (coin taken) 3.45s
+  t=   6.3 touch_coin_1 p=0.89 -> worked (coin taken) 3.92s
+  t=  12.0 touch_coin_2 p=0.63 -> worked (coin taken) 6.5s
+
+Jev: 11 answers, latency median 0.20s; actions {'started': 3, 'kept': 8}
+First decision Jev saw (state): {"goal": "Walk into coins to collect them; each touched coin should add its value to leaderstats Coins", "situation": {"leaderstats_coins": 0, "coins_left": 5, "pickups": [], "coins": {"Coin5": {"distance": 896, "direction": "behind-right", "bearing": 141, "height": -28, "value": 1}, "Coin1": {"distance": 560, "direction": "right", "bearing": 90, "height": -28, "value": 1}, "Coin2": {"distance": 1066, "direction": "right", "bearing": 113, "height": -28, "value": 1}, "Coin3": {"distance": 1066, "direction": "right", "bearing": 67, "height": -28, "value": 2}, "Coin4": {"distance": 1540, "direction": "right", "bearing": 90, "height": -28, "value": 1}}}, "options": {"touch_coin_1": {"coin": "Coin1", "distance": 560, "direction": "right", "bearing": 90, "height": -28, "value": 1}, "touch_coin_2": {"coin": "Coin5", "distance": 896, "direction": "behind-right", "bearing": 141, "height": -28, "value": 1}, "touch_coin_3": {"coin": "Coin2", "distance": 1066, "direction": "right", "bearing": 113, "height": -28, "value": 1}}, "now_doing": null, "recent": []}
+Its answer: {"touch_coin_1": 1.0, "touch_coin_2": 0.0, "touch_coin_3": 0.0}
+
+Situation over time (every ~5 s):
+  t=   0.7 {"leaderstats_coins": 0, "coins_left": 5, "pickups": [], "coins": {"Coin5": {"distance": 896, "direction": "behind-right", "bearing": 141, "height": -28, "value": 1}, "Coin1": {"distance": 560, "direction": "right", "bearing": 90, "height": -28, "value": 1}, "Coin2": {"distance": 1066, "direction":   [running] options=['touch_coin_1', 'touch_coin_2', 'touch_coin_3']
+  t=   6.3 {"leaderstats_coins": 1, "coins_left": 4, "pickups": [{"coin": "Coin1", "value_attr": 1, "coins_before": 0, "coins_after": 1, "t": 5.63}], "coins": {"Coin5": {"distance": 733, "direction": "right", "bearing": 95, "height": 0, "value": 1}, "Coin4": {"distance": 870, "direction": "ahead", "bearing": -  [running] options=['touch_coin_1', 'touch_coin_2', 'touch_coin_3']
+  t=  12.0 {"leaderstats_coins": 3, "coins_left": 3, "pickups": [{"coin": "Coin1", "value_attr": 1, "coins_before": 0, "coins_after": 1, "t": 5.63}, {"coin": "Coin3", "value_attr": 2, "coins_before": 1, "coins_after": 3, "t": 11.48}], "coins": {"Coin5": {"distance": 1360, "direction": "behind", "bearing": 167,  [running] options=['touch_coin_1', 'touch_coin_2', 'touch_coin_3']
+  t=  20.2 {"leaderstats_coins": 4, "coins_left": 2, "pickups": [{"coin": "Coin1", "value_attr": 1, "coins_before": 0, "coins_after": 1, "t": 5.63}, {"coin": "Coin3", "value_attr": 2, "coins_before": 1, "coins_after": 3, "t": 11.48}, {"coin": "Coin2", "value_attr": 1, "coins_before": 3, "coins_after": 4, "t":   [done] options=['touch_coin_1', 'touch_coin_2']
+
+Errors in harness code:
+  [observe/status/options] GameError: transforms: Object /Workspace/Coins/Coin3 does not exist
+    3.14/lib/python3.14/concurrent/futures/_base.py", line 396, in __get_result
+        raise self._exception
+      File "/opt/homebrew/Cellar/python@3.14/3.14.8_2/Frameworks/Python.framework/Versions/3.14/lib/python3.14/concurrent/futures/thread.py", line 86, in run
+        result = ctx.run(self.task)
+      File "/opt/homebrew/Cellar/python@3.14/3.14.8_2/Frameworks/Python.framework/Versions/3.14/lib/python3.14/concurrent/futures/thread.py", line 73, in run
+        return fn(*args, **kwargs)
+      File "/Users/chase-mini/dev/autopilot-roblox/autopilot/runtime.py", line 748, in look
+        o = h.observe(g)
+    autopilot.kit.game.GameError: transforms: Object /Workspace/Coins/Coin3 does not exist
+  [observe/status/options] GameError: transforms: Object /Workspace/Coins/Coin2 does not exist
+    3.14/lib/python3.14/concurrent/futures/_base.py", line 396, in __get_result
+        raise self._exception
+      File "/opt/homebrew/Cellar/python@3.14/3.14.8_2/Frameworks/Python.framework/Versions/3.14/lib/python3.14/concurrent/futures/thread.py", line 86, in run
+        result = ctx.run(self.task)
+      File "/opt/homebrew/Cellar/python@3.14/3.14.8_2/Frameworks/Python.framework/Versions/3.14/lib/python3.14/concurrent/futures/thread.py", line 73, in run
+        return fn(*args, **kwargs)
+      File "/Users/chase-mini/dev/autopilot-roblox/autopilot/runtime.py", line 748, in look
+        o = h.observe(g)
+    autopilot.kit.game.GameError: transforms: Object /Workspace/Coins/Coin2 does not exist
+
+What the game's own detectors and error log reported (count, first time):
+  x2 t=0.3 game_log: [Warning] server: ContentId: rbxassetid://203785492 failed due to: Asset type does not match requested type
+  x1 t=0.0 game_log: [Error] server: Workspace.Sign.SignText:3: attempt to index nil with 'TextLabel'
+  x1 t=0.0 finding: Workspace.Sign.SignText:3: attempt to index nil with 'TextLabel'

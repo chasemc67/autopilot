@@ -1,0 +1,31 @@
+Harness CoinHarness  goal: "Touch coins to pick them up; each coin touched should raise the Coins leaderstat by the coin's Value. Pick up at least 3 coins."
+Ended: status done at t=11.2s  status=done note='3 coins picked up, each raising Coins by its Value' evidence={"start_coins": 0, "pickups": [{"coin": "Coin1", "value": 1, "coins_before": 0, "coins_after": 1, "t": 2.95}, {"coin": "Coin3", "value": 2, "coins_before": 1, "coins_after": 3, "t": 7.15}, {"coin": "Coin4", "value": 1, "coins_before": 3, "coins_after": 4, "t": 11.2}], "coins_stat_now": 4}
+Decisions by Jev: 9
+
+Options (started / worked / failed / unknown / interrupted / timed out):
+  collect_nearest_coin: 3 / 3 / 0 / 0 / 0 / 0 / 0
+  collect_nearest_coin ended because: can't read: transforms: Object /Workspace/Coins/Coin1 does not exist x1; can't read: transforms: Object /Workspace/Coins/Coin3 does not exist x1; can't read: transforms: Object /Workspace/Coins/Coin4 does not exist x1
+
+Executor steps (steps, ms a step median/p90/max, waits on the game a step mean/max; a tick is 67 ms at tick_hz 15, the loop ran 2.4 ticks/s):
+  collect_nearest_coin: 17 steps, 283/842/1059 ms, 3.4/6 waits
+  (idle): 9 steps, 0/0/0 ms, 0.0/0 waits
+  SLOW STEPS: collect_nearest_coin (~283 ms a step, 3.4 waits of ~83 ms). Every read waits for the game's answer (about a frame) and reads one after another add up: a step reacts to what it read that long ago, and the next step comes that much later. Gather a step's reads into one game.batch([...]) (one wait) and read only what the step needs. A reaction timed to the game (dodging before a hit lands, jumping at an edge) must allow for the step time, which changes with the frame rate.
+
+Timeline (t: option, p, how it ended, seconds):
+  t=   1.1 collect_nearest_coin p=0.91 -> worked (can't read: transforms: Object /Workspace/Coins/Coin1 does not exist) 1.89s
+  t=   3.7 collect_nearest_coin p=0.60 -> worked (can't read: transforms: Object /Workspace/Coins/Coin3 does not exist) 3.1s
+  t=   7.2 collect_nearest_coin p=0.84 -> worked (can't read: transforms: Object /Workspace/Coins/Coin4 does not exist) 3.59s
+
+Jev: 9 answers, latency median 0.15s; actions {'started': 3, 'kept': 6}
+First decision Jev saw (state): {"goal": "Touch coins to pick them up; each coin touched should raise the Coins leaderstat by the coin's Value. Pick up at least 3 coins.", "situation": {"coins_stat": 0, "coins_picked_up": 0, "coins_left": 5, "nearest_coin": {"value": 1, "distance": 560, "direction": "right", "bearing": 90, "height": -28}}, "options": {"collect_nearest_coin": {"value": 1, "distance": 560, "direction": "right", "bearing": 90, "height": -28}, "collect_most_valuable_coin": {"value": 2, "distance": 1066, "direction": "right", "bearing": 67, "height": -28}, "collect_farthest_coin": {"value": 1, "distance": 1540, "direction": "right", "bearing": 90, "height": -28}}, "now_doing": null, "recent": []}
+Its answer: {"collect_nearest_coin": 0.91, "collect_most_valuable_coin": 0.09, "collect_farthest_coin": 0.0}
+
+Situation over time (every ~5 s):
+  t=   0.7 {"coins_stat": 0, "coins_picked_up": 0, "coins_left": 5, "nearest_coin": {"value": 1, "distance": 560, "direction": "right", "bearing": 90, "height": -28}}  [running] options=['collect_nearest_coin', 'collect_most_valuable_coin', 'collect_farthest_coin']
+  t=   6.5 {"coins_stat": 1, "coins_picked_up": 1, "coins_left": 4, "nearest_coin": {"value": 2, "distance": 377, "direction": "ahead", "bearing": -7, "height": 0}}  [running] options=['collect_nearest_coin', 'collect_farthest_coin']
+  t=  10.5 {"coins_stat": 3, "coins_picked_up": 2, "coins_left": 3, "nearest_coin": {"value": 1, "distance": 393, "direction": "ahead", "bearing": 4, "height": 0}}  [running] options=['collect_nearest_coin', 'collect_farthest_coin']
+
+What the game's own detectors and error log reported (count, first time):
+  x2 t=0.4 game_log: [Warning] server: ContentId: rbxassetid://203785492 failed due to: Asset type does not match requested type
+  x1 t=0.0 game_log: [Error] server: Workspace.Sign.SignText:3: attempt to index nil with 'TextLabel'
+  x1 t=0.0 finding: Workspace.Sign.SignText:3: attempt to index nil with 'TextLabel'

@@ -1,0 +1,71 @@
+Harness ExploreHarness  goal: "Try everything in the place and look for things that behave wrongly: pick up coins, pull the lever, wave, read the sign, test the door in the wall while it is closed, try to get past the wall without the door, and reach the goal pad. Prefer what hasn't been tried yet."
+Ended: stalled at t=102.3s  status=running note='' evidence={"coins_stat": 4, "coins_left": 2, "door_open": false, "door_transparency": 0, "beyond_wall": true, "reached_goal": true, "lever_pulled": true, "lever_color": {"b": 0.157, "g": 0.784, "r": 0.157}, "waves": 0, "hud": {"Hud.Status": "You win!", "Hud.ShopButton": "Shop"}}
+Decisions by Jev: 82 (jev-1.13.0, via gateway)
+STALLED for 60.5 s (from t=41.8s): nothing advanced the plan and no option worked (tried: collect_nearest_coin started 3, failed 2; wave started 1, failed 1); the player moved 592 units (from [31, 2806, 112] to [-252, 2287, 84]). Look at where the player is and what blocked it (describe_frames if it can, a probe), then revise the plan's continuation (add or change the steps from here on, or an option's approach) and go on from this state with run_harness(restart=False): the level is not restarted and the steps already done stay done.
+
+Options (started / worked / failed / unknown / interrupted / timed out):
+  collect_nearest_coin: 6 / 3 / 2 / 0 / 1 / 0 / 0
+  wave: 2 / 0 / 2 / 0 / 0 / 0 / 0
+  pull_lever: 1 / 1 / 0 / 0 / 0 / 0 / 0
+  walk_into_closed_door: 1 / 0 / 0 / 0 / 1 / 0 / 0
+  walk_around_wall_end: 1 / 1 / 0 / 0 / 0 / 0 / 0
+  walk_onto_goal_pad: 1 / 1 / 0 / 0 / 0 / 0 / 0
+  collect_nearest_coin ended because: picked up x3; walk timed out x2; episode ended (stalled) x1
+  pull_lever ended because: pressed E at the lever x1
+  walk_into_closed_door ended because: switched to walk_around_wall_end x1
+  walk_around_wall_end ended because: past the end of the wall x1
+  wave ended because: pressed F x2
+  walk_onto_goal_pad ended because: arrived x1
+
+Executor steps (steps, ms a step median/p90/max, waits on the game a step mean/max; a tick is 67 ms at tick_hz 15, the loop ran 2.7 ticks/s):
+  collect_nearest_coin: 175 steps, 216/716/1065 ms, 1.6/6 waits
+  (idle): 32 steps, 0/0/0 ms, 0.0/0 waits
+  pull_lever: 20 steps, 282/1086/1149 ms, 1.6/6 waits
+  wave: 17 steps, 0/0/0 ms, 0.0/0 waits
+  walk_around_wall_end: 16 steps, 431/717/718 ms, 2.1/5 waits
+  walk_onto_goal_pad: 9 steps, 434/1057/1057 ms, 3.1/6 waits
+  walk_into_closed_door: 4 steps, 568/715/715 ms, 2.5/4 waits
+
+Timeline (t: option, p, how it ended, seconds):
+  t=   0.9 collect_nearest_coin p=0.63 -> worked (picked up) 2.2s
+  t=   3.8 pull_lever p=0.50 -> worked (pressed E at the lever) 8.13s
+  t=  13.0 collect_nearest_coin p=0.45 -> worked (picked up) 4.8s
+  t=  18.2 collect_nearest_coin p=0.42 -> worked (picked up) 3.87s
+  t=  22.5 walk_into_closed_door p=0.37 -> stopped (switched to walk_around_wall_end) 2.35s
+  t=  24.8 walk_around_wall_end p=0.58 -> worked (past the end of the wall) 7.85s
+  t=  33.3 wave p=0.53 -> FAILED (pressed F) 0.5s
+  t=  34.9 walk_onto_goal_pad p=0.56 -> worked (arrived) 6.3s
+  t=  42.1 collect_nearest_coin p=0.81 -> FAILED (walk timed out) 20.52s
+  t=  63.4 collect_nearest_coin p=0.58 -> FAILED (walk timed out) 20.56s
+  t=  84.6 wave p=0.57 -> FAILED (pressed F) 0.57s
+  t=  86.1 collect_nearest_coin p=0.57 -> stopped (episode ended (stalled)) 16.19s
+
+Jev: 82 answers, latency median 0.18s; actions {'started': 11, 'kept': 56, 'kept_running': 14, 'switched': 1}
+First decision Jev saw (state): {"goal": "Try everything in the place and look for things that behave wrongly: pick up coins, pull the lever, wave, read the sign, test the door in the wall while it is closed, try to get past the wall without the door, and reach the goal pad. Prefer what hasn't been tried yet.", "situation": {"coins_stat": 0, "coins_left": 5, "door_open": false, "beyond_wall": false, "reached_goal": false, "lever_pulled": false, "waves": 0, "hud": {"Hud.Status": "Collect the coins", "Hud.ShopButton": "Shop"}, "door": {"distance": 2240, "direction": "right", "bearing": 90, "height": 56}, "goal_pad": {"distance": 2800, "direction": "right", "bearing": 90, "height": -98}, "times_tried": {}}, "options": {"collect_nearest_coin": {"value": 1, "distance": 560, "direction": "right", "bearing": 90, "height": -28}, "pull_lever": {"lever": {"distance": 437, "direction": "ahead-right", "bearing": 40, "height": -56}, "pulled_now": false, "tried": 0}, "read_sign": {"sign": {"distance": 437, "direction": "behind-right", "bearing": 140, "height": -28}, "tried": 0}, "walk_into_closed_door": {"door": {"distance": 2240, "direction": "right", "bearing": 90, "height": 56}, "tried": 0}, "walk_around_wall_end": {"tried": 0}, "wave": {"waves": 0}}, "now_doing": null, "recent": []}
+Its answer: {"collect_nearest_coin": 0.63, "pull_lever": 0.28, "read_sign": 0.03, "walk_into_closed_door": 0.02, "walk_around_wall_end": 0.02, "wave": 0.02}
+
+Situation over time (every ~5 s):
+  t=   0.6 {"coins_stat": 0, "coins_left": 5, "door_open": false, "beyond_wall": false, "reached_goal": false, "lever_pulled": false, "waves": 0, "hud": {"Hud.Status": "Collect the coins", "Hud.ShopButton": "Shop"}, "door": {"distance": 2240, "direction": "right", "bearing": 90, "height": 56}, "goal_pad": {"di  [running] options=['collect_nearest_coin', 'pull_lever', 'read_sign', 'walk_into_closed_door', 'walk_around_wall_end', 'wave']
+  t=   6.7 {"coins_stat": 1, "coins_left": 4, "door_open": false, "beyond_wall": false, "reached_goal": false, "lever_pulled": false, "waves": 0, "hud": {"Hud.Status": "Collect the coins", "Hud.ShopButton": "Shop"}, "door": {"distance": 1599, "direction": "right", "bearing": 118, "height": 84}, "goal_pad": {"d  [running] options=['collect_nearest_coin', 'pull_lever', 'read_sign', 'walk_into_closed_door', 'walk_around_wall_end', 'wave']
+  t=  12.9 {"coins_stat": 1, "coins_left": 4, "door_open": false, "beyond_wall": false, "reached_goal": false, "lever_pulled": true, "waves": 0, "hud": {"Prompt.ActionText": "Pull", "Prompt.TextButton": "Button", "Hud.Status": "Collect the coins", "Prompt.ButtonText": "E", "Prompt.ObjectText": "Lever", "Hud.Sh  [running] options=['collect_nearest_coin', 'pull_lever', 'read_sign', 'walk_into_closed_door', 'walk_around_wall_end', 'wave']
+  t=  20.1 {"coins_stat": 3, "coins_left": 3, "door_open": false, "beyond_wall": false, "reached_goal": false, "lever_pulled": true, "waves": 0, "hud": {"Hud.Status": "Collect the coins", "Hud.ShopButton": "Shop"}, "door": {"distance": 1239, "direction": "ahead", "bearing": -12, "height": 84}, "goal_pad": {"di  [running] options=['collect_nearest_coin', 'pull_lever', 'read_sign', 'walk_into_closed_door', 'walk_around_wall_end', 'wave']
+  t=  26.7 {"coins_stat": 4, "coins_left": 2, "door_open": false, "beyond_wall": false, "reached_goal": false, "lever_pulled": true, "waves": 0, "hud": {"Hud.Status": "Collect the coins", "Hud.ShopButton": "Shop"}, "door": {"distance": 499, "direction": "ahead-left", "bearing": -53, "height": 84}, "goal_pad":   [running] options=['collect_nearest_coin', 'pull_lever', 'read_sign', 'walk_into_closed_door', 'walk_around_wall_end', 'wave']
+  t=  32.5 {"coins_stat": 4, "coins_left": 2, "door_open": false, "beyond_wall": false, "reached_goal": false, "lever_pulled": true, "waves": 0, "hud": {"Hud.Status": "Collect the coins", "Hud.ShopButton": "Shop"}, "door": {"distance": 1457, "direction": "left", "bearing": -99, "height": 84}, "goal_pad": {"dis  [running] options=['collect_nearest_coin', 'pull_lever', 'read_sign', 'walk_into_closed_door', 'walk_around_wall_end', 'wave']
+  t=  37.7 {"coins_stat": 4, "coins_left": 2, "door_open": false, "beyond_wall": true, "reached_goal": false, "lever_pulled": true, "waves": 0, "hud": {"Hud.Status": "Collect the coins", "Hud.ShopButton": "Shop"}, "door": {"distance": 1518, "direction": "ahead-left", "bearing": -27, "height": 84}, "goal_pad":   [running] options=['collect_nearest_coin', 'wave', 'walk_onto_goal_pad']
+  t=  43.5 {"coins_stat": 4, "coins_left": 2, "door_open": false, "beyond_wall": true, "reached_goal": true, "lever_pulled": true, "waves": 0, "hud": {"Hud.Status": "You win!", "Hud.ShopButton": "Shop"}, "door": {"distance": 567, "direction": "left", "bearing": -101, "height": 56}, "goal_pad": {"distance": 32,  [running] options=['collect_nearest_coin', 'wave']
+  t=  49.3 {"coins_stat": 4, "coins_left": 2, "door_open": false, "beyond_wall": true, "reached_goal": true, "lever_pulled": true, "waves": 0, "hud": {"Hud.Status": "You win!", "Hud.ShopButton": "Shop"}, "door": {"distance": 115, "direction": "right", "bearing": 82, "height": 84}, "goal_pad": {"distance": 528,  [running] options=['collect_nearest_coin', 'wave']
+  t=  55.3 {"coins_stat": 4, "coins_left": 2, "door_open": false, "beyond_wall": true, "reached_goal": true, "lever_pulled": true, "waves": 0, "hud": {"Hud.Status": "You win!", "Hud.ShopButton": "Shop"}, "door": {"distance": 311, "direction": "right", "bearing": 87, "height": 84}, "goal_pad": {"distance": 600,  [running] options=['collect_nearest_coin', 'wave']
+  t=  60.7 {"coins_stat": 4, "coins_left": 2, "door_open": false, "beyond_wall": true, "reached_goal": true, "lever_pulled": true, "waves": 0, "hud": {"Hud.Status": "You win!", "Hud.ShopButton": "Shop"}, "door": {"distance": 398, "direction": "right", "bearing": 83, "height": 87}, "goal_pad": {"distance": 637,  [running] options=['collect_nearest_coin', 'wave']
+  t=  66.1 {"coins_stat": 4, "coins_left": 2, "door_open": false, "beyond_wall": true, "reached_goal": true, "lever_pulled": true, "waves": 0, "hud": {"Hud.Status": "You win!", "Hud.ShopButton": "Shop"}, "door": {"distance": 540, "direction": "right", "bearing": 82, "height": 84}, "goal_pad": {"distance": 745,  [running] options=['collect_nearest_coin', 'wave']
+  t=  71.1 {"coins_stat": 4, "coins_left": 2, "door_open": false, "beyond_wall": true, "reached_goal": true, "lever_pulled": true, "waves": 0, "hud": {"Hud.Status": "You win!", "Hud.ShopButton": "Shop"}, "door": {"distance": 397, "direction": "right", "bearing": 80, "height": 89}, "goal_pad": {"distance": 637,  [running] options=['collect_nearest_coin', 'wave']
+  t=  76.7 {"coins_stat": 4, "coins_left": 2, "door_open": false, "beyond_wall": true, "reached_goal": true, "lever_pulled": true, "waves": 0, "hud": {"Hud.Status": "You win!", "Hud.ShopButton": "Shop"}, "door": {"distance": 819, "direction": "right", "bearing": 68, "height": -116}, "goal_pad": {"distance": 96  [running] options=['collect_nearest_coin', 'wave']
+  t=  83.6 {"coins_stat": 4, "coins_left": 2, "door_open": false, "beyond_wall": true, "reached_goal": true, "lever_pulled": true, "waves": 0, "hud": {"Hud.Status": "You win!", "Hud.ShopButton": "Shop"}, "door": {"distance": 505, "direction": "right", "bearing": 76, "height": 88}, "goal_pad": {"distance": 713,  [running] options=['collect_nearest_coin', 'wave']
+  t=  88.8 {"coins_stat": 4, "coins_left": 2, "door_open": false, "beyond_wall": true, "reached_goal": true, "lever_pulled": true, "waves": 0, "hud": {"Hud.Status": "You win!", "Hud.ShopButton": "Shop"}, "door": {"distance": 504, "direction": "behind-right", "bearing": 164, "height": 84}, "goal_pad": {"distanc  [running] options=['collect_nearest_coin', 'wave']
+  t=  94.1 {"coins_stat": 4, "coins_left": 2, "door_open": false, "beyond_wall": true, "reached_goal": true, "lever_pulled": true, "waves": 0, "hud": {"Hud.Status": "You win!", "Hud.ShopButton": "Shop"}, "door": {"distance": 756, "direction": "right", "bearing": 71, "height": 84}, "goal_pad": {"distance": 914,  [running] options=['collect_nearest_coin', 'wave']
+  t=  99.8 {"coins_stat": 4, "coins_left": 2, "door_open": false, "beyond_wall": true, "reached_goal": true, "lever_pulled": true, "waves": 0, "hud": {"Hud.Status": "You win!", "Hud.ShopButton": "Shop"}, "door": {"distance": 169, "direction": "right", "bearing": 84, "height": 84}, "goal_pad": {"distance": 539,  [running] options=['collect_nearest_coin', 'wave']
+  t= 102.3 {"coins_stat": 4, "coins_left": 2, "door_open": false, "beyond_wall": true, "reached_goal": true, "lever_pulled": true, "waves": 0, "hud": {"Hud.Status": "You win!", "Hud.ShopButton": "Shop"}, "door": {"distance": 257, "direction": "ahead-right", "bearing": 31, "height": 84}, "goal_pad": {"distance"  [running] options=['collect_nearest_coin', 'wave']
+
+What the game's own detectors and error log reported (count, first time):
+  x2 t=0.3 game_log: [Warning] server: ContentId: rbxassetid://203785492 failed due to: Asset type does not match requested type
+  x1 t=0.0 game_log: [Error] server: Workspace.Sign.SignText:3: attempt to index nil with 'TextLabel'
+  x1 t=0.0 finding: Workspace.Sign.SignText:3: attempt to index nil with 'TextLabel'

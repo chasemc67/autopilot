@@ -1,0 +1,42 @@
+gateway enabled: True
+=== claude-opus-5-5: route anthropic wire, model claude-opus-5-5, ok=True, 15.6s
+8 frames of 8 (the goal run's last 8 s), at game times 30.50, 31.56, 32.67, 33.93, 35.16, 36.40, 37.42, 38.45 s:
+**1. What the player character is doing**
+
+The character is a blocky avatar with dark blue antlers dotted with small yellow stars, white hair or hood, white muscular arms, a dark starry blue cape and dark legs. Seen from behind, it walks or runs across a grey tiled floor.
+
+- **Frame 1:** It moves away from the camera on an open grey floor. A few small white and dark blocks stand far off. Its cape trails to the right.
+- **Frame 2:** The view has turned. A long lavender wall with a pinkish end face runs along the left side. The character is partly turned, showing its right side.
+- **Frame 3:** It faces a long lavender wall with a narrow doorway. Through the doorway are a pinkish floor and a bright green glowing patch.
+- **Frame 4:** It stands in the doorway. Everything around it is tinted pink-purple, and two bright green glowing shapes show at hip height, one on each side of its body.
+- **Frames 5–6:** It is further inside a pink-tinted passage between tall purple walls. The green glowing shapes are still at its hips on both sides. The pose barely changes between these two frames.
+- **Frame 7:** The walls are gone. It is back on the open grey floor, facing away, with a large flat bright green glowing slab filling the lower foreground.
+- **Frame 8:** It is seen from its left side, standing at the edge of a green glowing slab with a many-sided outline. A dark blue block sits at the right edge of the screen and casts a shadow. This is where it ends up.
+
+**2. On-screen text**
+
+- Top centre, in a grey box: "Collect the coins" in frames 1–6, then "You win!" in frames 7–8.
+- Left side, in a grey button: "Shop", in every frame.
+- Frame 8: lettering on the character's shirt, partly readable as "IT'S" over "REE"; the rest is unreadable.
+
+**Last: things that look unusual**
+
+- **Frames 4–6:** The green glowing shapes appear on both sides of the character at hip height. Parts of them seem to sit inside or behind the body and cape, so they look like they overlap or pass through the character.
+- **Frames 4–6:** The whole scene, including the character, is tinted pink-purple.
+- **Frames 6 to 7:** The tall walls and pink-tinted floor of frame 6 are absent in frame 7. The setting changes abruptly to the open grey floor.
+- **Frame 8:** The cape's lower end overlaps the edge of the green slab.
+
+No stretched or flickering surfaces are visible, and the text is not cut off.
+Usage: llm claude-opus-5-5: 1 calls, 9709 in / 1224 out tokens
+=== gpt-6.1-sol: route openai wire, model openai/gpt-6.1-sol, ok=True, 11.1s
+8 frames of 8 (the goal run's last 8 s), at game times 30.50, 31.56, 32.67, 33.93, 35.16, 36.40, 37.42, 38.45 s:
+1. The character moves across the gray tiled ground toward an opening in a tall pale blue-gray wall. Between frames 1–3, the view swings from behind to the character’s side and back behind. Its arms and legs change positions like walking or running; its dark, blue-speckled cape changes from hanging downward in frame 2 to flaring toward screen-right in frames 3–7. The branching antlers stay attached above its white hood.
+
+   In frames 4–6, it advances through the opening toward a bright neon-green floor pad, partly hidden behind its body. The doorway edges spread toward the screen edges as the viewpoint advances. In frame 7, the character reaches the pad, which fills much of the lower foreground and has a yellow-green glow around its edges. Frame 8 shows the character upright near one edge of the pad, viewed more from the side. The tiled ground, wall, and pad show no independent movement.
+
+2. A bordered gray box near the top center reads **“Collect the coins”** in frames 1–6, then **“You win!”** in frames 7–8. A gray button at the left reads **“Shop”** in every frame. Small lettering on the character’s upper sleeve in frame 8 is too small to make out confidently: **unreadable**.
+
+Last. Nothing clearly like the listed unusual visual conditions shows. The green pad is partly covered by the character in frames 3–6; by frame 7 it is largely visible beneath and in front of the character. The cape covers much of the character’s back and legs, so their exact positions cannot always be made out.
+Usage: llm openai/gpt-6.1-sol: 1 calls, 0 in / 0 out tokens, cache 0 read / 8772 written
+=== after the usage fix: gpt-6.1-sol ok True | mentions You win: True
+Usage: llm openai/gpt-6.1-sol: 1 calls, 8756 in / 234 out tokens, $0.024229

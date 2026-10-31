@@ -1,0 +1,17 @@
+# Usage lines the agent service logged per run (autopilot serve / autopilot play; no key in them)
+## goal, testing, explore (serve2.log, in order)
+Usage: decision jev-1.13.0: 25 calls, 23776 in / 1112 out tokens, $0.000999
+Usage: decision jev-1.13.0: 186 calls, 210729 in / 10011 out tokens, $0.008851
+Usage: decision jev-1.13.0: 68 calls, 79697 in / 5285 out tokens, $0.003347
+## internal agent verification (autopilot play, AUTOPILOT_AGENT=claude)
+Usage: llm claude-opus-5-5: 7 calls, 2396 in / 3819 out tokens, cache 141721 read / 33966 written; decision jev-1.13.0: 11 calls, 10962 in / 550 out tokens, $0.000460
+
+# The user's Claude Code's last words per run (stream-json result)
+## verify
+FINAL: success 89208 **Confirmed: touching a coin raises leaderstats Coins by that coin's `Value`.**
+## goal
+FINAL: success 128103 Autopilot achieved the goal on its first episode: the agent collected all 5 coins and reached the goal pad in about 38 seconds of play.
+## testing
+FINAL: success 23341 The biggest problem: the wall can be walked around, so you can win without collecting the coins. The agent played for about 5 minutes, did everything the place offers, and reached the goal pad while the door was still shut.
+## explore
+FINAL: success 266277 Autopilot explored the coin system. Coin counting works, but it found two design problems.

@@ -1,0 +1,59 @@
+Harness CoinExplore  goal: "Explore the coin system for bugs: pick up coins in different ways (walking in, jumping onto one, running and jumping over one, brushing past one's edge), revisit spots where coins were taken, and watch the Coins counter, the HUD and the door. Prefer what hasn't been tried yet."
+Ended: status done at t=68.2s  status=done note='all coins taken and spots revisited' evidence={"coins_stat": 6, "coins_left": 0, "door_open": true, "hud_status": "Collect the coins", "events": [{"t": 2.8, "coins_before": 0, "coins_after": 1, "removed": ["Coin1"], "expected_gain": 1, "mismatch": false}, {"t": 8.5, "coins_before": 1, "coins_after": 3, "removed": ["Coin3"], "expected_gain": 2, "mismatch": false}, {"t": 15.5, "coins_before": 3, "coins_after": 4, "removed": ["Coin2"], "expected
+Decisions by Jev: 18 (jev-1.13.0, via gateway)
+
+Options (started / worked / failed / unknown / interrupted / timed out):
+  walk_into_nearest_coin: 3 / 3 / 0 / 0 / 0 / 0 / 0
+  revisit_taken_coin_spot: 3 / 3 / 0 / 0 / 0 / 0 / 0
+  jump_onto_nearest_coin: 1 / 1 / 0 / 0 / 0 / 0 / 0
+  run_and_jump_over_coin: 1 / 1 / 0 / 0 / 0 / 0 / 0
+  brush_past_coin_edge: 1 / 1 / 0 / 0 / 0 / 0 / 0
+  walk_into_nearest_coin ended because: gone x3
+  jump_onto_nearest_coin ended because: gone x1
+  run_and_jump_over_coin ended because: coin taken x1
+  brush_past_coin_edge ended because: passed by, coin still there x1
+  revisit_taken_coin_spot ended because: Coins 4 -> 4 at an empty spot x3
+
+Executor steps (steps, ms a step median/p90/max, waits on the game a step mean/max; a tick is 67 ms at tick_hz 15, the loop ran 2.9 ticks/s):
+  revisit_taken_coin_spot: 99 steps, 0/433/913 ms, 0.9/5 waits
+  (idle): 32 steps, 0/0/0 ms, 0.0/0 waits
+  walk_into_nearest_coin: 22 steps, 432/933/1080 ms, 3.5/6 waits
+  brush_past_coin_edge: 22 steps, 417/866/1001 ms, 2.2/5 waits
+  run_and_jump_over_coin: 13 steps, 284/782/864 ms, 1.5/5 waits
+  jump_onto_nearest_coin: 11 steps, 433/914/999 ms, 2.7/6 waits
+  SLOW STEPS: walk_into_nearest_coin (~432 ms a step, 3.5 waits of ~125 ms). Every read waits for the game's answer (about a frame) and reads one after another add up: a step reacts to what it read that long ago, and the next step comes that much later. Gather a step's reads into one game.batch([...]) (one wait) and read only what the step needs. A reaction timed to the game (dodging before a hit lands, jumping at an edge) must allow for the step time, which changes with the frame rate.
+
+Timeline (t: option, p, how it ended, seconds):
+  t=   0.8 walk_into_nearest_coin p=0.83 -> worked (gone) 2.53s
+  t=   4.4 jump_onto_nearest_coin p=0.86 -> worked (gone) 6.73s
+  t=  11.9 run_and_jump_over_coin p=0.76 -> worked (coin taken) 4.94s
+  t=  17.5 brush_past_coin_edge p=0.96 -> worked (passed by, coin still there) 11.03s
+  t=  29.3 revisit_taken_coin_spot p=0.98 -> worked (Coins 4 -> 4 at an empty spot) 7.08s
+  t=  37.1 revisit_taken_coin_spot p=0.56 -> worked (Coins 4 -> 4 at an empty spot) 9.57s
+  t=  47.4 revisit_taken_coin_spot p=0.45 -> worked (Coins 4 -> 4 at an empty spot) 8.57s
+  t=  57.0 walk_into_nearest_coin p=0.51 -> worked (gone) 3.38s
+  t=  61.1 walk_into_nearest_coin p=0.39 -> worked (gone) 6.7s
+
+Jev: 18 answers, latency median 0.19s; actions {'started': 9, 'kept': 9}
+First decision Jev saw (state): {"goal": "Explore the coin system for bugs: pick up coins in different ways (walking in, jumping onto one, running and jumping over one, brushing past one's edge), revisit spots where coins were taken, and watch the Coins counter, the HUD and the door. Prefer what hasn't been tried yet.", "situation": {"coins_stat": 0, "coins_left": 5, "coins_value_left": 6, "door_open": false, "hud_status": "Collect the coins", "mismatches": 0, "taken_spots": 0, "times_tried": {}}, "options": {"walk_into_nearest_coin": {"value": 1, "distance": 560, "direction": "right", "bearing": 90, "height": -28, "tried": 0}, "jump_onto_nearest_coin": {"value": 1, "distance": 560, "direction": "right", "bearing": 90, "height": -28, "tried": 0}, "run_and_jump_over_coin": {"value": 1, "distance": 560, "direction": "right", "bearing": 90, "height": -28, "tried": 0}, "brush_past_coin_edge": {"value": 1, "distance": 560, "direction": "right", "bearing": 90, "height": -28, "tried": 0}}, "now_doing": null, "recent": []}
+Its answer: {"walk_into_nearest_coin": 0.83, "jump_onto_nearest_coin": 0.05, "run_and_jump_over_coin": 0.03, "brush_past_coin_edge": 0.09}
+
+Situation over time (every ~5 s):
+  t=   0.7 {"coins_stat": 0, "coins_left": 5, "coins_value_left": 6, "door_open": false, "hud_status": "Collect the coins", "mismatches": 0, "taken_spots": 0, "times_tried": {}}  [running] options=['walk_into_nearest_coin', 'jump_onto_nearest_coin', 'run_and_jump_over_coin', 'brush_past_coin_edge']
+  t=   7.2 {"coins_stat": 1, "coins_left": 4, "coins_value_left": 5, "door_open": false, "hud_status": "Collect the coins", "mismatches": 0, "taken_spots": 1, "times_tried": {"walk_into_nearest_coin": 1, "jump_onto_nearest_coin": 1}}  [running] options=['walk_into_nearest_coin', 'jump_onto_nearest_coin', 'run_and_jump_over_coin', 'brush_past_coin_edge', 'revisit_taken_coin_spot']
+  t=  13.0 {"coins_stat": 3, "coins_left": 3, "coins_value_left": 3, "door_open": false, "hud_status": "Collect the coins", "mismatches": 0, "taken_spots": 2, "times_tried": {"walk_into_nearest_coin": 1, "jump_onto_nearest_coin": 1, "run_and_jump_over_coin": 1}}  [running] options=['walk_into_nearest_coin', 'jump_onto_nearest_coin', 'run_and_jump_over_coin', 'brush_past_coin_edge', 'revisit_taken_coin_spot']
+  t=  18.7 {"coins_stat": 4, "coins_left": 2, "coins_value_left": 2, "door_open": false, "hud_status": "Collect the coins", "mismatches": 0, "taken_spots": 3, "times_tried": {"walk_into_nearest_coin": 1, "jump_onto_nearest_coin": 1, "run_and_jump_over_coin": 1, "brush_past_coin_edge": 1}}  [running] options=['walk_into_nearest_coin', 'jump_onto_nearest_coin', 'run_and_jump_over_coin', 'brush_past_coin_edge', 'revisit_taken_coin_spot']
+  t=  24.6 {"coins_stat": 4, "coins_left": 2, "coins_value_left": 2, "door_open": false, "hud_status": "Collect the coins", "mismatches": 0, "taken_spots": 3, "times_tried": {"walk_into_nearest_coin": 1, "jump_onto_nearest_coin": 1, "run_and_jump_over_coin": 1, "brush_past_coin_edge": 1}}  [running] options=['walk_into_nearest_coin', 'jump_onto_nearest_coin', 'run_and_jump_over_coin', 'brush_past_coin_edge', 'revisit_taken_coin_spot']
+  t=  30.6 {"coins_stat": 4, "coins_left": 2, "coins_value_left": 2, "door_open": false, "hud_status": "Collect the coins", "mismatches": 0, "taken_spots": 3, "times_tried": {"walk_into_nearest_coin": 1, "jump_onto_nearest_coin": 1, "run_and_jump_over_coin": 1, "brush_past_coin_edge": 1, "revisit_taken_coin_sp  [running] options=['walk_into_nearest_coin', 'jump_onto_nearest_coin', 'run_and_jump_over_coin', 'brush_past_coin_edge', 'revisit_taken_coin_spot']
+  t=  36.3 {"coins_stat": 4, "coins_left": 2, "coins_value_left": 2, "door_open": false, "hud_status": "Collect the coins", "mismatches": 0, "taken_spots": 3, "times_tried": {"walk_into_nearest_coin": 1, "jump_onto_nearest_coin": 1, "run_and_jump_over_coin": 1, "brush_past_coin_edge": 1, "revisit_taken_coin_sp  [running] options=['walk_into_nearest_coin', 'jump_onto_nearest_coin', 'run_and_jump_over_coin', 'brush_past_coin_edge', 'revisit_taken_coin_spot']
+  t=  42.3 {"coins_stat": 4, "coins_left": 2, "coins_value_left": 2, "door_open": false, "hud_status": "Collect the coins", "mismatches": 0, "taken_spots": 3, "times_tried": {"walk_into_nearest_coin": 1, "jump_onto_nearest_coin": 1, "run_and_jump_over_coin": 1, "brush_past_coin_edge": 1, "revisit_taken_coin_sp  [running] options=['walk_into_nearest_coin', 'jump_onto_nearest_coin', 'run_and_jump_over_coin', 'brush_past_coin_edge', 'revisit_taken_coin_spot']
+  t=  48.6 {"coins_stat": 4, "coins_left": 2, "coins_value_left": 2, "door_open": false, "hud_status": "Collect the coins", "mismatches": 0, "taken_spots": 3, "times_tried": {"walk_into_nearest_coin": 1, "jump_onto_nearest_coin": 1, "run_and_jump_over_coin": 1, "brush_past_coin_edge": 1, "revisit_taken_coin_sp  [running] options=['walk_into_nearest_coin', 'jump_onto_nearest_coin', 'run_and_jump_over_coin', 'brush_past_coin_edge', 'revisit_taken_coin_spot']
+  t=  53.9 {"coins_stat": 4, "coins_left": 2, "coins_value_left": 2, "door_open": false, "hud_status": "Collect the coins", "mismatches": 0, "taken_spots": 3, "times_tried": {"walk_into_nearest_coin": 1, "jump_onto_nearest_coin": 1, "run_and_jump_over_coin": 1, "brush_past_coin_edge": 1, "revisit_taken_coin_sp  [running] options=['walk_into_nearest_coin', 'jump_onto_nearest_coin', 'run_and_jump_over_coin', 'brush_past_coin_edge', 'revisit_taken_coin_spot']
+  t=  59.9 {"coins_stat": 4, "coins_left": 2, "coins_value_left": 2, "door_open": false, "hud_status": "Collect the coins", "mismatches": 0, "taken_spots": 3, "times_tried": {"walk_into_nearest_coin": 2, "jump_onto_nearest_coin": 1, "run_and_jump_over_coin": 1, "brush_past_coin_edge": 1, "revisit_taken_coin_sp  [running] options=['walk_into_nearest_coin', 'jump_onto_nearest_coin', 'run_and_jump_over_coin', 'brush_past_coin_edge', 'revisit_taken_coin_spot']
+  t=  65.3 {"coins_stat": 5, "coins_left": 1, "coins_value_left": 1, "door_open": true, "hud_status": "Collect the coins", "mismatches": 0, "taken_spots": 4, "times_tried": {"walk_into_nearest_coin": 3, "jump_onto_nearest_coin": 1, "run_and_jump_over_coin": 1, "brush_past_coin_edge": 1, "revisit_taken_coin_spo  [running] options=['walk_into_nearest_coin', 'jump_onto_nearest_coin', 'run_and_jump_over_coin', 'brush_past_coin_edge', 'revisit_taken_coin_spot']
+  t=  68.2 {"coins_stat": 6, "coins_left": 0, "coins_value_left": 0, "door_open": true, "hud_status": "Collect the coins", "mismatches": 0, "taken_spots": 5, "times_tried": {"walk_into_nearest_coin": 3, "jump_onto_nearest_coin": 1, "run_and_jump_over_coin": 1, "brush_past_coin_edge": 1, "revisit_taken_coin_spo  [done] options=['revisit_taken_coin_spot']
+
+What the game's own detectors and error log reported (count, first time):
+  x2 t=0.3 game_log: [Warning] server: ContentId: rbxassetid://203785492 failed due to: Asset type does not match requested type
+  x1 t=0.0 game_log: [Error] server: Workspace.Sign.SignText:3: attempt to index nil with 'TextLabel'
+  x1 t=0.0 finding: Workspace.Sign.SignText:3: attempt to index nil with 'TextLabel'

@@ -1,0 +1,28 @@
+{
+ "outcome": "CONFIRMED",
+ "summary": "The agent walked into three coins in turn. Each one vanished on contact, and the player's leaderstats Coins went up by that coin's Value attribute every time: 0\u21921 (Coin1, Value 1), 1\u21923 (Coin3, Value 2), 3\u21924 (Coin4, Value 1). Separately, the game logged an error at start-up from Workspace.Sign.SignText, which has nothing to do with coins.",
+ "evidence": [
+  "trace1.jsonl t=2.95: Coin1 (Value 1) touched and destroyed; leaderstats Coins 0 -> 1",
+  "trace1.jsonl t=7.15: Coin3 (Value 2) touched and destroyed; leaderstats Coins 1 -> 3",
+  "trace1.jsonl t=11.2: Coin4 (Value 1) touched and destroyed; leaderstats Coins 3 -> 4",
+  "Episode 1: the agent picked collect_nearest_coin in all 3 of its choices (2-3 options offered each time, 9 decisions in all)",
+  "Research probe (before the episode): walking into Coin1 raised Coins 0 -> 1 and removed the coin",
+  "Direct changes: none in the probe or the episode (the probe only walked the player by input)",
+  "Game log in episode 1: [Error] Workspace.Sign.SignText:3: attempt to index nil with 'TextLabel' at t=0.0; asset-type warning for rbxassetid://203785492 (x2)"
+ ],
+ "findings": [
+  "Workspace.Sign.SignText:3 raises 'attempt to index nil with TextLabel' when the play test starts (game log, episode 1, t=0.0). This isn't about coins."
+ ],
+ "run": "20261031-144332",
+ "project": "Place1",
+ "prompt": "Verify that touching a coin increases leaderstats Coins",
+ "seconds": 72.6,
+ "episodes": 1,
+ "tool_seconds": 19.2,
+ "stopped": null,
+ "level_modified": [],
+ "research_modified": [],
+ "agent": "external",
+ "client": "claude-code",
+ "model": null
+}

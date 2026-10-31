@@ -1,0 +1,867 @@
+{
+ "gateway": "https://ai-gateway.vercel.sh",
+ "when": "2026-10-31 14:27:14 PDT",
+ "models_listed": 499,
+ "listed": {
+  "anthropic/claude-opus-5.5": true,
+  "claude-opus-5-5": false,
+  "deepseek/deepseek-v4-pro": true,
+  "google/gemini-4-argon": true,
+  "gpt-6.1-sol": false,
+  "jev-1.13.0": false,
+  "jev-1.14.0": false,
+  "openai/gpt-6.1-sol": true,
+  "typesafe-ai/jev": true
+ },
+ "jev_ids_listed": [
+  "typesafe-ai/jev",
+  "typesafe-ai/jev-1.13.0",
+  "typesafe-ai/jev-1.14.0"
+ ],
+ "calls": [
+  {
+   "ours": "claude-opus-5-5",
+   "gateway_id": "claude-opus-5-5",
+   "wire": "anthropic",
+   "image": false,
+   "status": 200,
+   "ms": 1093,
+   "text": "ok",
+   "usage": {
+    "input_tokens": 18,
+    "output_tokens": 4,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 0
+    },
+    "speed": "standard",
+    "service_tier": "standard",
+    "output_tokens_details": {
+     "thinking_tokens": 0
+    }
+   },
+   "model_answered": "claude-opus-5-5",
+   "generation_id": "sfo1::cle1::6mpzw-1793482034583-980111d17be7",
+   "error": null
+  },
+  {
+   "ours": "claude-opus-5-5",
+   "gateway_id": "claude-opus-5-5",
+   "wire": "anthropic",
+   "image": true,
+   "status": 200,
+   "ms": 1327,
+   "text": "",
+   "usage": {
+    "input_tokens": 656,
+    "output_tokens": 20,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 0
+    },
+    "speed": "standard",
+    "service_tier": "standard",
+    "output_tokens_details": {
+     "thinking_tokens": 20
+    }
+   },
+   "model_answered": "claude-opus-5-5",
+   "generation_id": "sfo1::cle1::wwxnn-1793482035684-d5fdd62728db",
+   "error": null
+  },
+  {
+   "ours": "claude-opus-5-5",
+   "gateway_id": "anthropic/claude-opus-5.5",
+   "wire": "anthropic",
+   "image": false,
+   "status": 200,
+   "ms": 1263,
+   "text": "ok",
+   "usage": {
+    "input_tokens": 18,
+    "output_tokens": 4,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 0
+    },
+    "speed": "standard",
+    "service_tier": "standard",
+    "output_tokens_details": {
+     "thinking_tokens": 0
+    }
+   },
+   "model_answered": "anthropic/claude-opus-5.5",
+   "generation_id": "sfo1::cle1::lc2lw-1793482037010-cb96dabf90c6",
+   "error": null
+  },
+  {
+   "ours": "claude-opus-5-5",
+   "gateway_id": "anthropic/claude-opus-5.5",
+   "wire": "anthropic",
+   "image": true,
+   "status": 200,
+   "ms": 1506,
+   "text": "Roblox avatar with ant",
+   "usage": {
+    "input_tokens": 656,
+    "output_tokens": 20,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+     "ephemeral_5m_input_tokens": 0,
+     "ephemeral_1h_input_tokens": 0
+    },
+    "speed": "standard",
+    "service_tier": "standard",
+    "output_tokens_details": {
+     "thinking_tokens": 11
+    }
+   },
+   "model_answered": "anthropic/claude-opus-5.5",
+   "generation_id": "sfo1::cle1::clrnp-1793482038263-720884076bdb",
+   "error": null
+  },
+  {
+   "ours": "claude-opus-5-5",
+   "gateway_id": "anthropic/claude-opus-5.5",
+   "wire": "chat",
+   "image": false,
+   "status": 200,
+   "ms": 1012,
+   "text": "ok",
+   "usage": {
+    "prompt_tokens": 18,
+    "completion_tokens": 4,
+    "total_tokens": 22,
+    "cost": 0.000152,
+    "is_byok": false,
+    "prompt_tokens_details": {
+     "cached_tokens": 0,
+     "audio_tokens": 0,
+     "video_tokens": 0
+    },
+    "cost_details": {
+     "upstream_inference_cost": null,
+     "upstream_inference_prompt_cost": 0,
+     "upstream_inference_completions_cost": 0
+    },
+    "completion_tokens_details": {
+     "reasoning_tokens": 0,
+     "image_tokens": 0
+    },
+    "cache_creation_input_tokens": 0,
+    "market_cost": 0.000152,
+    "gateway_cost": 0.000152
+   },
+   "model_answered": "anthropic/claude-opus-5.5",
+   "generation_id": "sfo1::cle1::f7sg5-1793482039776-92092a32e859",
+   "error": null
+  },
+  {
+   "ours": "claude-opus-5-5",
+   "gateway_id": "anthropic/claude-opus-5.5",
+   "wire": "chat",
+   "image": true,
+   "status": 200,
+   "ms": 1401,
+   "text": "",
+   "usage": {
+    "prompt_tokens": 656,
+    "completion_tokens": 20,
+    "total_tokens": 676,
+    "cost": 0.003024,
+    "is_byok": false,
+    "prompt_tokens_details": {
+     "cached_tokens": 0,
+     "audio_tokens": 0,
+     "video_tokens": 0
+    },
+    "cost_details": {
+     "upstream_inference_cost": null,
+     "upstream_inference_prompt_cost": 0,
+     "upstream_inference_completions_cost": 0
+    },
+    "completion_tokens_details": {
+     "reasoning_tokens": 20,
+     "image_tokens": 0
+    },
+    "cache_creation_input_tokens": 0,
+    "market_cost": 0.003024,
+    "gateway_cost": 0.003024
+   },
+   "model_answered": "anthropic/claude-opus-5.5",
+   "generation_id": "sfo1::cle1::2qzj5-1793482040803-44a8fb465efd",
+   "error": null
+  },
+  {
+   "ours": "gpt-6.1-sol",
+   "gateway_id": "openai/gpt-6.1-sol",
+   "wire": "chat",
+   "image": false,
+   "status": 200,
+   "ms": 1174,
+   "text": "ok",
+   "usage": {
+    "prompt_tokens": 13,
+    "completion_tokens": 5,
+    "total_tokens": 18,
+    "cost": 7.6e-05,
+    "is_byok": false,
+    "prompt_tokens_details": {
+     "cached_tokens": 0,
+     "audio_tokens": 0,
+     "video_tokens": 0
+    },
+    "cost_details": {
+     "upstream_inference_cost": null,
+     "upstream_inference_prompt_cost": 0,
+     "upstream_inference_completions_cost": 0
+    },
+    "completion_tokens_details": {
+     "reasoning_tokens": 0,
+     "image_tokens": 0
+    },
+    "cache_creation_input_tokens": 0,
+    "market_cost": 7.6e-05,
+    "gateway_cost": 7.6e-05
+   },
+   "model_answered": "openai/gpt-6.1-sol",
+   "generation_id": "sfo1::cle1::x8tj5-1793482042184-8bb838392963",
+   "error": null
+  },
+  {
+   "ours": "gpt-6.1-sol",
+   "gateway_id": "openai/gpt-6.1-sol",
+   "wire": "chat",
+   "image": true,
+   "status": 200,
+   "ms": 1535,
+   "text": "A Roblox character collecting coins in a game.",
+   "usage": {
+    "prompt_tokens": 596,
+    "completion_tokens": 13,
+    "total_tokens": 609,
+    "cost": 0.001322,
+    "is_byok": false,
+    "prompt_tokens_details": {
+     "cached_tokens": 0,
+     "audio_tokens": 0,
+     "video_tokens": 0
+    },
+    "cost_details": {
+     "upstream_inference_cost": null,
+     "upstream_inference_prompt_cost": 0,
+     "upstream_inference_completions_cost": 0
+    },
+    "completion_tokens_details": {
+     "reasoning_tokens": 0,
+     "image_tokens": 0
+    },
+    "cache_creation_input_tokens": 0,
+    "market_cost": 0.001322,
+    "gateway_cost": 0.001322
+   },
+   "model_answered": "openai/gpt-6.1-sol",
+   "generation_id": "sfo1::cle1::lm2qr-1793482043359-0e7cfc8dd095",
+   "error": null
+  },
+  {
+   "ours": "gpt-6.1-sol",
+   "gateway_id": "gpt-6.1-sol",
+   "wire": "chat",
+   "image": false,
+   "status": 200,
+   "ms": 1136,
+   "text": "ok",
+   "usage": {
+    "prompt_tokens": 13,
+    "completion_tokens": 5,
+    "total_tokens": 18,
+    "cost": 7.6e-05,
+    "is_byok": false,
+    "prompt_tokens_details": {
+     "cached_tokens": 0,
+     "audio_tokens": 0,
+     "video_tokens": 0
+    },
+    "cost_details": {
+     "upstream_inference_cost": null,
+     "upstream_inference_prompt_cost": 0,
+     "upstream_inference_completions_cost": 0
+    },
+    "completion_tokens_details": {
+     "reasoning_tokens": 0,
+     "image_tokens": 0
+    },
+    "cache_creation_input_tokens": 0,
+    "market_cost": 7.6e-05,
+    "gateway_cost": 7.6e-05
+   },
+   "model_answered": "openai/gpt-6.1-sol",
+   "generation_id": "sfo1::cle1::hsxkb-1793482044892-fa6e510cfe91",
+   "error": null
+  },
+  {
+   "ours": "gpt-6.1-sol",
+   "gateway_id": "openai/gpt-6.1-sol",
+   "wire": "responses",
+   "image": false,
+   "status": 200,
+   "ms": 1830,
+   "text": "ok",
+   "usage": {
+    "input_tokens": 13,
+    "output_tokens": 5,
+    "total_tokens": 18,
+    "input_tokens_details": {
+     "cached_tokens": 0,
+     "cache_write_tokens": 0
+    },
+    "output_tokens_details": {
+     "reasoning_tokens": 0
+    }
+   },
+   "model_answered": "openai/gpt-6.1-sol",
+   "generation_id": "sfo1::cle1::pqhrs-1793482046065-e75103a1f2cf",
+   "error": null
+  },
+  {
+   "ours": "gpt-6.1-sol",
+   "gateway_id": "gpt-6.1-sol",
+   "wire": "responses",
+   "image": false,
+   "status": 200,
+   "ms": 1495,
+   "text": "ok",
+   "usage": {
+    "input_tokens": 13,
+    "output_tokens": 5,
+    "total_tokens": 18,
+    "input_tokens_details": {
+     "cached_tokens": 0,
+     "cache_write_tokens": 0
+    },
+    "output_tokens_details": {
+     "reasoning_tokens": 0
+    }
+   },
+   "model_answered": "openai/gpt-6.1-sol",
+   "generation_id": "sfo1::cle1::rpxw7-1793482047868-6c9e8cb42ef4",
+   "error": null
+  },
+  {
+   "ours": "gemini-4-argon",
+   "gateway_id": "google/gemini-4-argon",
+   "wire": "chat",
+   "image": false,
+   "status": 200,
+   "ms": 3871,
+   "text": "ok",
+   "usage": {
+    "prompt_tokens": 38,
+    "completion_tokens": 5,
+    "total_tokens": 43,
+    "cost": 0.000126,
+    "is_byok": false,
+    "prompt_tokens_details": {
+     "cached_tokens": 0,
+     "audio_tokens": 0,
+     "video_tokens": 0
+    },
+    "cost_details": {
+     "upstream_inference_cost": null,
+     "upstream_inference_prompt_cost": 0,
+     "upstream_inference_completions_cost": 0
+    },
+    "completion_tokens_details": {
+     "reasoning_tokens": 0,
+     "image_tokens": 0
+    },
+    "cache_creation_input_tokens": 0,
+    "market_cost": 0.000126,
+    "gateway_cost": 0.000126
+   },
+   "model_answered": "google/gemini-4-argon",
+   "generation_id": "sfo1::cle1::wjql9-1793482049363-b93a9e7b2e2a",
+   "error": null
+  },
+  {
+   "ours": "gemini-4-argon",
+   "gateway_id": "google/gemini-4-argon",
+   "wire": "chat",
+   "image": true,
+   "status": 200,
+   "ms": 4003,
+   "text": "A character walking in a Roblox game.",
+   "usage": {
+    "prompt_tokens": 1127,
+    "completion_tokens": 12,
+    "total_tokens": 1139,
+    "cost": 0.002374,
+    "is_byok": false,
+    "prompt_tokens_details": {
+     "cached_tokens": 0,
+     "audio_tokens": 0,
+     "video_tokens": 0
+    },
+    "cost_details": {
+     "upstream_inference_cost": null,
+     "upstream_inference_prompt_cost": 0,
+     "upstream_inference_completions_cost": 0
+    },
+    "completion_tokens_details": {
+     "reasoning_tokens": 0,
+     "image_tokens": 0
+    },
+    "cache_creation_input_tokens": 0,
+    "market_cost": 0.002374,
+    "gateway_cost": 0.002374
+   },
+   "model_answered": "google/gemini-4-argon",
+   "generation_id": "sfo1::cle1::pkbrt-1793482053233-b3f0f4c851c3",
+   "error": null
+  },
+  {
+   "ours": "deepseek-v4-pro",
+   "gateway_id": "deepseek/deepseek-v4-pro",
+   "wire": "chat",
+   "image": false,
+   "status": 200,
+   "ms": 1499,
+   "text": "ok",
+   "usage": {
+    "prompt_tokens": 90,
+    "completion_tokens": 15,
+    "total_tokens": 105,
+    "cost": 8.91e-05,
+    "is_byok": false,
+    "prompt_tokens_details": {
+     "cached_tokens": 0,
+     "audio_tokens": 0,
+     "video_tokens": 0
+    },
+    "cost_details": {
+     "upstream_inference_cost": null,
+     "upstream_inference_prompt_cost": 0,
+     "upstream_inference_completions_cost": 0
+    },
+    "completion_tokens_details": {
+     "reasoning_tokens": 13,
+     "image_tokens": 0
+    },
+    "cache_creation_input_tokens": 0,
+    "market_cost": 8.91e-05,
+    "gateway_cost": 8.91e-05
+   },
+   "model_answered": "deepseek/deepseek-v4-pro",
+   "generation_id": "sfo1::cle1::4r4dh-1793482057245-20b423c87a86",
+   "error": null
+  },
+  {
+   "ours": "anthropic/claude-opus-5.5",
+   "gateway_id": "anthropic/claude-opus-5.5",
+   "wire": "chat",
+   "image": false,
+   "status": 200,
+   "ms": 987,
+   "text": "ok",
+   "usage": {
+    "prompt_tokens": 18,
+    "completion_tokens": 4,
+    "total_tokens": 22,
+    "cost": 0.000152,
+    "is_byok": false,
+    "prompt_tokens_details": {
+     "cached_tokens": 0,
+     "audio_tokens": 0,
+     "video_tokens": 0
+    },
+    "cost_details": {
+     "upstream_inference_cost": null,
+     "upstream_inference_prompt_cost": 0,
+     "upstream_inference_completions_cost": 0
+    },
+    "completion_tokens_details": {
+     "reasoning_tokens": 0,
+     "image_tokens": 0
+    },
+    "cache_creation_input_tokens": 0,
+    "market_cost": 0.000152,
+    "gateway_cost": 0.000152
+   },
+   "model_answered": "anthropic/claude-opus-5.5",
+   "generation_id": "sfo1::cle1::vc6j5-1793482058732-3393659cbbd1",
+   "error": null
+  },
+  {
+   "ours": "claude-opus-5-5",
+   "gateway_id": "claude-opus-5-5",
+   "wire": "anthropic (no effort)",
+   "image": false,
+   "status": 200,
+   "text": "ok"
+  }
+ ],
+ "jev": [
+  {
+   "model": "jev-1.13.0",
+   "latencies_ms": [
+    195,
+    136,
+    151,
+    153,
+    183,
+    157,
+    163,
+    169,
+    167,
+    179,
+    188,
+    160,
+    202,
+    174,
+    156,
+    168,
+    138,
+    146,
+    218,
+    243
+   ],
+   "errors": [],
+   "answers": [
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 0.99,
+      "wait": 0.01
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    }
+   ],
+   "usage": {
+    "input_tokens": 336,
+    "output_tokens": 31
+   },
+   "model_answered": "jev-1.13.0",
+   "p50_ms": 167.5,
+   "p90_ms": 202,
+   "first_ms": 195,
+   "keep_warm_models_list": "ok in 118 ms"
+  },
+  {
+   "model": "typesafe-ai/jev-1.13.0",
+   "latencies_ms": [
+    222,
+    148,
+    152,
+    162,
+    159,
+    148,
+    216,
+    153,
+    160,
+    154,
+    151,
+    174,
+    173,
+    151,
+    238,
+    243,
+    179,
+    171,
+    135,
+    144
+   ],
+   "errors": [],
+   "answers": [
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 1.0,
+      "wait": 0.0
+     }
+    },
+    {
+     "choice": "coin",
+     "probabilities": {
+      "coin": 0.99,
+      "wait": 0.01
+     }
+    }
+   ],
+   "usage": {
+    "input_tokens": 336,
+    "output_tokens": 31
+   },
+   "model_answered": "typesafe-ai/jev-1.13.0",
+   "p50_ms": 159.5,
+   "p90_ms": 222,
+   "first_ms": 222,
+   "keep_warm_models_list": "ok in 124 ms"
+  }
+ ]
+}

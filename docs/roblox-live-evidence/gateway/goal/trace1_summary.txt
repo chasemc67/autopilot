@@ -1,0 +1,50 @@
+Harness CoinsAndGoalHarness  goal: 'Pick up all 5 coins by walking into them (5 Coins opens the door in the wall), then walk through the open door onto the goal pad.'
+Ended: status done at t=38.1s  status=done note='all coins collected and the goal pad reached' evidence={"coins_stat": 6, "coins_left": 0, "door_open": true, "reached_goal": true}
+Decisions by Jev: 25 (jev-1.13.0, via gateway)
+
+Plan (the steps in order):
+  1. collect_coins: done at t=19.9s  (Pick up every coin (the door opens at 5 Coins))
+  2. reach_goal: done at t=37.8s  (Walk through the open door onto the goal pad)
+
+Options (started / worked / failed / unknown / interrupted / timed out):
+  collect_nearest_coin: 5 / 5 / 0 / 0 / 0 / 0 / 0
+  walk_through_door: 1 / 1 / 0 / 0 / 0 / 0 / 0
+  walk_onto_goal_pad: 1 / 0 / 0 / 0 / 1 / 0 / 0
+  collect_nearest_coin ended because: picked up x5
+  walk_through_door ended because: arrived x1
+  walk_onto_goal_pad ended because: episode ended (status done) x1
+
+Executor steps (steps, ms a step median/p90/max, waits on the game a step mean/max; a tick is 67 ms at tick_hz 15, the loop ran 1.9 ticks/s):
+  walk_through_door: 29 steps, 432/584/851 ms, 2.1/5 waits
+  collect_nearest_coin: 27 steps, 567/850/1071 ms, 3.6/6 waits
+  (idle): 12 steps, 0/0/0 ms, 0.0/0 waits
+  walk_onto_goal_pad: 4 steps, 858/866/866 ms, 4.0/6 waits
+  SLOW STEPS: collect_nearest_coin (~567 ms a step, 3.6 waits of ~156 ms). Every read waits for the game's answer (about a frame) and reads one after another add up: a step reacts to what it read that long ago, and the next step comes that much later. Gather a step's reads into one game.batch([...]) (one wait) and read only what the step needs. A reaction timed to the game (dodging before a hit lands, jumping at an edge) must allow for the step time, which changes with the frame rate.
+
+Timeline (t: option, p, how it ended, seconds):
+  t=   0.8 collect_nearest_coin p=0.94 -> worked (picked up) 1.95s
+  t=   3.6 collect_nearest_coin p=0.85 -> worked (picked up) 3.38s
+  t=   7.4 collect_nearest_coin p=0.88 -> worked (picked up) 3.87s
+  t=  11.6 collect_nearest_coin p=0.88 -> worked (picked up) 4.58s
+  t=  16.9 collect_nearest_coin p=1.00 -> worked (picked up) 3.0s
+  t=  20.8 walk_through_door p=0.98 -> worked (arrived) 13.63s
+  t=  34.9 walk_onto_goal_pad p=1.00 -> stopped (episode ended (status done)) 3.18s
+
+Jev: 25 answers, latency median 0.18s; actions {'started': 5, 'kept': 20}
+First decision Jev saw (state): {"goal": "Pick up all 5 coins by walking into them (5 Coins opens the door in the wall), then walk through the open door onto the goal pad.", "situation": {"coins_stat": 0, "coins_left": 5, "door_open": false, "reached_goal": false, "door": {"distance": 2240, "direction": "right", "bearing": 90, "height": 56}, "goal_pad": {"distance": 2800, "direction": "right", "bearing": 90, "height": -98}, "nearest_coin": {"value": 1, "distance": 560, "direction": "right", "bearing": 90, "height": -28}}, "options": {"collect_nearest_coin": {"value": 1, "distance": 560, "direction": "right", "bearing": 90, "height": -28}, "collect_most_valuable_coin": {"value": 2, "distance": 1066, "direction": "right", "bearing": 67, "height": -28}, "collect_farthest_coin": {"value": 1, "distance": 1540, "direction": "right", "bearing": 90, "height": -28}}, "now_doing": null, "recent": [], "plan": {"done": [], "now": {"step": "collect_coins", "what": "Pick up every coin (the door opens at 5 Coins)", "for_seconds": 0.1}, "next": ["Walk through the open door onto the goal pad"]}}
+Its answer: {"collect_nearest_coin": 0.94, "collect_most_valuable_coin": 0.06, "collect_farthest_coin": 0.0}
+
+Situation over time (every ~5 s):
+  t=   0.6 {"coins_stat": 0, "coins_left": 5, "door_open": false, "reached_goal": false, "door": {"distance": 2240, "direction": "right", "bearing": 90, "height": 56}, "goal_pad": {"distance": 2800, "direction": "right", "bearing": 90, "height": -98}, "nearest_coin": {"value": 1, "distance": 560, "direction":   [running] options=['collect_nearest_coin', 'collect_most_valuable_coin', 'collect_farthest_coin'] step=collect_coins
+  t=   6.4 {"coins_stat": 1, "coins_left": 4, "door_open": false, "reached_goal": false, "door": {"distance": 1460, "direction": "ahead-right", "bearing": 51, "height": 84}, "goal_pad": {"distance": 2017, "direction": "ahead-right", "bearing": 49, "height": -70}, "nearest_coin": {"value": 2, "distance": 321, "  [running] options=['collect_nearest_coin', 'collect_farthest_coin'] step=collect_coins
+  t=  13.6 {"coins_stat": 4, "coins_left": 2, "door_open": false, "reached_goal": false, "door": {"distance": 632, "direction": "left", "bearing": -116, "height": 84}, "goal_pad": {"distance": 1192, "direction": "left", "bearing": -115, "height": -70}, "nearest_coin": {"value": 1, "distance": 735, "direction":  [running] options=['collect_nearest_coin', 'collect_farthest_coin'] step=collect_coins
+  t=  18.8 {"coins_stat": 5, "coins_left": 1, "door_open": true, "reached_goal": false, "door": {"distance": 1324, "direction": "behind", "bearing": -169, "height": 84}, "goal_pad": {"distance": 1861, "direction": "behind-left", "bearing": -163, "height": -70}, "nearest_coin": {"value": 1, "distance": 503, "di  [running] options=['collect_nearest_coin'] step=collect_coins
+  t=  25.4 {"coins_stat": 6, "coins_left": 0, "door_open": true, "reached_goal": false, "door": {"distance": 965, "direction": "ahead", "bearing": 8, "height": 84}, "goal_pad": {"distance": 1505, "direction": "ahead", "bearing": 15, "height": -70}, "nearest_coin": null}  [running] options=['walk_through_door', 'walk_onto_goal_pad'] step=reach_goal
+  t=  31.3 {"coins_stat": 6, "coins_left": 0, "door_open": true, "reached_goal": false, "door": {"distance": 415, "direction": "behind-left", "bearing": -160, "height": 84}, "goal_pad": {"distance": 973, "direction": "behind-left", "bearing": -156, "height": -70}, "nearest_coin": null}  [running] options=['walk_through_door', 'walk_onto_goal_pad'] step=reach_goal
+  t=  36.7 {"coins_stat": 6, "coins_left": 0, "door_open": true, "reached_goal": false, "door": {"distance": 222, "direction": "behind", "bearing": -173, "height": 84}, "goal_pad": {"distance": 339, "direction": "ahead", "bearing": 1, "height": -70}, "nearest_coin": null}  [running] options=['walk_onto_goal_pad'] step=reach_goal
+  t=  38.1 {"coins_stat": 6, "coins_left": 0, "door_open": true, "reached_goal": true, "door": {"distance": 671, "direction": "behind", "bearing": -178, "height": 56}, "goal_pad": {"distance": 111, "direction": "behind", "bearing": 178, "height": -98}, "nearest_coin": null}  [done] options=[]
+
+What the game's own detectors and error log reported (count, first time):
+  x2 t=0.3 game_log: [Warning] server: ContentId: rbxassetid://203785492 failed due to: Asset type does not match requested type
+  x1 t=0.0 game_log: [Error] server: Workspace.Sign.SignText:3: attempt to index nil with 'TextLabel'
+  x1 t=0.0 finding: Workspace.Sign.SignText:3: attempt to index nil with 'TextLabel'

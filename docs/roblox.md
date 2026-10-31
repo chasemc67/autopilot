@@ -3,7 +3,8 @@
 > **Status: experimental; the core is VERIFIED live** in Roblox Studio 0.745 on macOS (October 2026), in a throwaway
 > Baseplate place: install, the handshake, Play start / stop / restart, reading the game and its scripts, moving and
 > acting as the player, real keys and GUI clicks, pictures and recording, logs and errors, and runs of all four
-> prompt kinds through `autopilot serve` and Claude Code (with a local stand-in for the decision model: section 8).
+> prompt kinds through `autopilot serve` and Claude Code (with the real Jev through Vercel AI Gateway, log round 6;
+> earlier with a local stand-in: section 8).
 > The log of every check, with the commands and their output, is [roblox-live-test-log.md](roblox-live-test-log.md);
 > screenshots are in [roblox-live-evidence/](roblox-live-evidence/). What was not checked is still marked
 > **UNVERIFIED** (Windows, Team Test, published places, games with their own input stacks).
@@ -272,15 +273,17 @@ outputs: [roblox-live-test-log.md](roblox-live-test-log.md).
 | The edit place untouched by runs | VERIFIED | log round 2 |
 | The four prompt kinds through `autopilot serve` + Claude Code (Autopilot's MCP server, skill and describer) | Verification CONFIRMED (twice), Goal achieved, Testing and Exploration explored with real bugs found; every run reported | log round 4, [e2e-*](roblox-live-evidence/), [07](roblox-live-evidence/07-e2e-goal-reached.jpg), [10](roblox-live-evidence/10-dock-final-verdict.png) |
 | Pictures across Studio restarts and play restarts; a play test rejoining after the agent service restarts | VERIFIED after fixes | log round 5 |
+| The four prompt kinds with the real Jev through Vercel AI Gateway; Autopilot's own Claude Code agent and describe_frames through it | all four reached their verdict; internal agent CONFIRMED; frames described correctly | log round 6, [gateway/](roblox-live-evidence/gateway/) |
 | `tests/test_roblox.py`, the full suite, `stylua`, `selene`, `rojo build` | passing / clean | |
 | Windows, Team Test, a published place, Rojo-synced places | UNVERIFIED | |
 
-**The decision model.** A run's episodes are played by Jev, TypeSafe's hosted decision model, reached with
-`TYPESAFE_API_KEY` or through Aura. Neither was available for these checks, so the e2e runs used a local stand-in
-(`AUTOPILOT_JEV_STANDIN=random`, `runtime.StandInJev`) that picks one of the options the harness offers at random and
-never reads the state. Everything else was real: the user's Claude Code wrote and ran the harnesses through
-Autopilot's MCP server, the game was played live, and the reports came from what happened in play. What the stand-in
-can't show is how well Jev itself plays a Roblox game. `autopilot connect claude` itself wasn't run (it writes the
+**The decision model.** A run's episodes are played by Jev, TypeSafe's hosted decision model, reached through Vercel
+AI Gateway when there is a gateway key (the default: [gateway.md](gateway.md)), else with `TYPESAFE_API_KEY` or
+through Aura. Rounds 4-5 used a local stand-in (`AUTOPILOT_JEV_STANDIN=random`, `runtime.StandInJev`, random picks);
+**round 6 replayed all four prompt kinds with the real Jev (`jev-1.13.0`) through the gateway**: Verification
+CONFIRMED, Goal achieved, Testing and Exploration explored, in fewer episodes than with the stand-in, Testing finding
+the planted Coin3 bug too; decisions answered in 0.18 s (p50) / 0.27 s (p90), no errors or timeouts, Jev's cost about
+$0.013 for all four. Autopilot's own Claude Code agent and the vision model were also checked through the gateway. `autopilot connect claude` itself wasn't run (it writes the
 user-wide Claude Code config of a machine shared by other agents); the runs loaded the same files it installs
 (`python -m autopilot.connect plugin <folder>`, which the tests compare with what `connect` writes) with
 `claude --plugin-dir`.

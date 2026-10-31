@@ -1,7 +1,8 @@
 # Roblox Studio support: live test log
 
 Machine: Chase's Mac Mini, macOS 27.0.1, Roblox Studio 0.745.0.7451137, a NEW unsaved Baseplate ("Place1") only.
-Nothing was saved or published. Evidence screenshots: [roblox-live-evidence/](roblox-live-evidence/).
+Nothing was saved or published. Evidence screenshots: [roblox-live-evidence/](roblox-live-evidence/). Round 6 plays
+with the real Jev through Vercel AI Gateway (rounds 4-5 used a local stand-in).
 
 Tools used throughout:
 
@@ -249,6 +250,117 @@ capture True 0.18 s
 ```
 
 Then the final-code Verification e2e (table above): CONFIRMED, 112 frames kept in the episode's video.
+
+## Round 6: 2026-10-31 14:20-15:10 PDT: the real Jev through Vercel AI Gateway
+
+Jev and every other model call now go through Vercel AI Gateway when a gateway key is there ([gateway.md](gateway.md),
+`autopilot/gateway.py`). This round replays round 4 with **the real Jev** (`jev-1.13.0`, via the gateway): no
+`AUTOPILOT_JEV_STANDIN`, no `TYPESAFE_API_KEY`, the key read by Autopilot from the settings folder's `gateway.env`
+(never printed: every log and file below was checked for it, and for its last 20 characters, and holds neither).
+Evidence: [roblox-live-evidence/gateway/](roblox-live-evidence/gateway/).
+
+### Models on the gateway
+
+```
+$ python tools/gateway_check.py --out model-check.json --jev-calls 20
+{"ours": "claude-opus-5-5", "gateway_id": "anthropic/claude-opus-5.5", "wire": "anthropic", "image": true,
+ "status": 200, "ms": 1506, "text": "Roblox avatar with ant", ...}
+{"ours": "gpt-6.1-sol", "gateway_id": "openai/gpt-6.1-sol", "wire": "chat", "image": true, "status": 200,
+ "ms": 1535, "text": "A Roblox character collecting coins in a game.", "usage": {..., "cost": 0.001322, ...}}
+{"ours": "gemini-4-argon", "gateway_id": "google/gemini-4-argon", "wire": "chat", "image": true, "status": 200,
+ "ms": 4003, "text": "A character walking in a Roblox game.", ...}
+{"ours": "deepseek-v4-pro", "gateway_id": "deepseek/deepseek-v4-pro", "wire": "chat", "status": 200, "text": "ok"}
+{"model": "jev-1.13.0", "errors": [], "usage": {"input_tokens": 336, "output_tokens": 31}, "p50_ms": 167.5,
+ "p90_ms": 202, "first_ms": 195, "keep_warm_models_list": "ok in 118 ms"}
+{"model": "typesafe-ai/jev-1.13.0", "errors": [], "p50_ms": 159.5, "p90_ms": 222, ...}
+```
+
+All 10 checks answered 200 (table in [gateway.md](gateway.md), section 2). A Jev answer through the gateway carries
+its cost: `"provider_metadata": {"gateway": {"cost": "0.000012936", ...}}` for 308 input tokens ($0.042 per 1M).
+The Claude Agent SDK (Claude Code 2.1.296) with Autopilot's own `claude_code._env` inside `gateway.Run()`: `ok`,
+standard ($0.0015) and fast mode ($0.0031).
+
+### The four prompt kinds, end to end
+
+Setup as in round 4, with a fresh memory folder (so the earlier runs' notes don't help):
+
+```
+env -u TYPESAFE_API_KEY -u AUTOPILOT_JEV_STANDIN -u AI_GATEWAY_API_KEY -u ANTHROPIC_API_KEY \
+  PYTHONUNBUFFERED=1 AUTOPILOT_SHARE=0 AUTOPILOT_MEMORY=$PWD/.e2e/memory-gateway autopilot serve
+.e2e/gw-run.sh <name> "<prompt>"   # = round 4's claude --model claude-opus-5-5 -p ... --plugin-dir .e2e/plugin,
+                                   #   other MCP servers disallowed, no TypeSafe key or stand-in in its environment
+```
+
+Each run's trace starts with `"jev": {"model": "jev-1.13.0", "via": "gateway"}` and its summary says
+`Decisions by Jev: 25 (jev-1.13.0, via gateway)` (the first run, Verification, predates that line; its decisions'
+latencies are the gateway's, not the stand-in's ~2 ms). The agent service's log after each run:
+
+```
+Usage: decision jev-1.13.0: 25 calls, 23776 in / 1112 out tokens, $0.000999       (Goal)
+Usage: decision jev-1.13.0: 186 calls, 210729 in / 10011 out tokens, $0.008851    (Testing)
+Usage: decision jev-1.13.0: 68 calls, 79697 in / 5285 out tokens, $0.003347       (Exploration)
+```
+
+| Kind | Prompt | Real Jev (this round) | Stand-in (round 4) |
+|---|---|---|---|
+| Verification | "Use Autopilot to verify that touching a coin increases leaderstats Coins" | **CONFIRMED**, 1.5 min, 1 episode, 9 decisions; 3 coins, 0→1→3→4 (Coin3 +2) ([verify](roblox-live-evidence/gateway/verify/)) | CONFIRMED, 2.8 min, 2 episodes (the first stalled when the stand-in switched targets); final-code rerun 1.5 min, 1 episode |
+| Goal | "Use Autopilot to collect all coins and reach the goal pad" | **achieved**, 2.1 min, 1 episode (38 s of play), 25 decisions ([goal](roblox-live-evidence/gateway/goal/), [02](roblox-live-evidence/gateway/02-goal-run-you-win-frame.jpg)) | achieved, 1.6 min, 1 episode (30.8 s of play) |
+| Testing | "Use Autopilot to go through the place and tell me everything that looks wrong" | **explored**, 6.2 min, 2 episodes (3.7 min of play), 184 decisions. Found: the wall can be walked around (win with 4 coins, door shut); the sign's script errors; **the door opens with a coin left because Coin3 is worth 2** (planted); the lever does nothing; the HUD never shows the count ([testing](roblox-live-evidence/gateway/testing/)) | explored, 9.3 min, 3 episodes; found the wall hole and the sign error, not the Coin3 bug |
+| Exploration | "Use Autopilot to explore the coin system" | **explored**, 4.5 min, 2 episodes (2.2 min of play), 68 decisions; 10 pickups four ways (walk, jump into, run-jump over, edge), each by its coin's Value; door at 5 with a coin left; HUD gives no count ([explore](roblox-live-evidence/gateway/explore/)) | explored, 9.8 min, 4 episodes; same coin findings |
+
+Jev's decisions read sensibly in the traces: with three coin options it chose the nearest (p 0.91) and kept it while
+it walked (`kept` 6 of 9), switched only when a coin was gone; in Testing it went through every option the harness
+offered (lever, wave, sign, door, wall end, goal pad) and kept the one going unless another was clearly better.
+
+**Per-decision latency** (the trace's `latency`, from the question to its answer, all 286 decisions of the four runs):
+p50 **0.18 s**, p90 **0.27 s**, p99 0.36 s, max 0.41 s. None near the 1.5 s timeout (0 over 1.0 s); **0 `jev_error`,
+0 timeouts, 0 errors** (SDK retries aren't traced; no failure needed one to be reported). The stand-in answered in
+2-3 ms; the harness loop's speed (2.4 ticks a second) is the game link's, not Jev's.
+
+**Faster and more reliable?** Every run reached its verdict, as with the stand-in, and in fewer episodes: the two
+explorations took 6.2 and 4.5 min against 9.3 and 9.8, the Verification needed no second episode, and Testing found
+one more real bug (the planted Coin3 one). The Goal run was slightly slower (2.1 vs 1.6 min; 38 vs 31 s of play).
+Small samples: one run each.
+
+**Tokens and cost.** Jev in the four runs: about 288 calls (the Verification's 9 weren't logged; about $0.0004),
+~314k input / 16k output tokens in the three logged, **$0.013** by the gateway's own figures. The user's Claude Code (its own Claude login,
+not the gateway; `total_cost_usd` of its stream): Verification $0.60 (4.9k output tokens, 577k cache reads), Goal
+$0.74, Testing $2.73, Exploration $1.01; round 4's: $0.69 / $0.61 / $1.32 / $1.60.
+
+### A non-Jev path: Autopilot's own Claude Code agent through the gateway
+
+```
+$ env -u TYPESAFE_API_KEY -u AI_GATEWAY_API_KEY -u ANTHROPIC_API_KEY -u ANTHROPIC_BASE_URL \
+    AUTOPILOT_SHARE=0 AUTOPILOT_AGENT=claude AUTOPILOT_TIMEOUT=600 AUTOPILOT_MEMORY=.e2e/memory-gateway-internal \
+    autopilot play "Verify that touching a coin increases leaderstats Coins"
+Connected: Place1 (editor, Roblox Studio)
+Usage: llm claude-opus-5-5: 7 calls, 2396 in / 3819 out tokens, cache 141721 read / 33966 written; decision
+jev-1.13.0: 11 calls, 10962 in / 550 out tokens, $0.000460
+ "outcome": "CONFIRMED",
+```
+
+The Claude Agent SDK agent (Claude Code, `claude-opus-5-5`, fast mode) through the run's proxy to the gateway with the
+gateway key as `ANTHROPIC_API_KEY`: CONFIRMED in 58 s (8 turns, 1 episode, Claude Code's estimate $0.56), "0→1 (Coin1),
+1→3 (Coin3, value 2), 3→4 (Coin2)" ([internal-verify](roblox-live-evidence/gateway/internal-verify/), dock:
+[01](roblox-live-evidence/gateway/01-dock-internal-agent-confirmed.jpg)).
+
+### Vision through the gateway
+
+`vision.Describer(..., "gateway", model)` on 8 real frames of the Goal run's recording (its last 8 s, extracted from
+`media/recording-1.mp4`), asked what the character does and what text shows
+([vision-describe-frames.txt](roblox-live-evidence/gateway/vision-describe-frames.txt)):
+
+- `claude-opus-5-5` (Anthropic's wire on the gateway, 15.6 s): the character walks through the doorway in the wall
+  onto the green pad; text "Collect the coins" in frames 1-6, then **"You win!"** in 7-8, and "Shop". Correct (compare
+  [02](roblox-live-evidence/gateway/02-goal-run-you-win-frame.jpg), [03](roblox-live-evidence/gateway/03-goal-run-through-the-door-frame.jpg)).
+- `gpt-6.1-sol` (`openai/gpt-6.1-sol`, chat completions, 11.1 s): the same, correctly. Its usage was first counted as
+  0 tokens: the gateway's chat-completions usage also carries `cache_creation_input_tokens`, which `llm_usage` took for
+  Anthropic's shape. Fixed (`c0f98c9`); rerun: `8756 in / 234 out tokens, $0.024229`.
+
+### What this round cost on the gateway
+
+Model check ~$0.015, SDK checks $0.005, Jev in all runs ~$0.014, the internal agent run ~$0.56, vision ~$0.11
+(Opus' 9.7k-token call ~$0.06 at the gateway's chat-completions rate, two GPT calls ~$0.05): about **$0.70**.
 
 ## Final checks
 
