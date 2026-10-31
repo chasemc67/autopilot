@@ -99,7 +99,11 @@ def serve(args):
                 self._reply(200, {"ok": False, "error": f"{type(e).__name__}: {e}",
                                   "seconds": round(time.time() - started, 3)})
 
-    ThreadingHTTPServer(("127.0.0.1", COMMAND_PORT), Handler).serve_forever()
+    class Server(ThreadingHTTPServer):
+        daemon_threads = True
+        request_queue_size = 64
+
+    Server(("127.0.0.1", COMMAND_PORT), Handler).serve_forever()
 
 
 def _http(method, path, body=None, timeout=600):

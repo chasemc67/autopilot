@@ -9,7 +9,12 @@ local Config = {
 	URL = "http://127.0.0.1:8766/v1/roblox",
 	TOKEN = "__AUTOPILOT_ROBLOX_TOKEN__",
 	POLL_WAIT = 20, -- seconds a poll may wait at the bridge for frames
-	MAX_REQUESTS_PER_SECOND = 8, -- (Roblox limits a game server to about 500 requests a minute)
+	-- Requests a second at most: a request answers the brain and the next poll carries its next request, so this sets
+	-- the round trip (at 8 a second it was ~250 ms an answer). Roblox limits a game's HttpService to about 500 a
+	-- minute; a Studio plugin's calls to localhost weren't limited when checked live, and the link slows down by itself
+	-- should Studio ever refuse one for the limit (MIN_REQUESTS_PER_SECOND).
+	MAX_REQUESTS_PER_SECOND = 30,
+	MIN_REQUESTS_PER_SECOND = 4,
 	CLIENT_TIMEOUT = 10, -- seconds to wait for the client agent's answer
 	HEARTBEAT_SECONDS = 1,
 	-- What the plugin puts in the place for a run (removed when the play test ends)

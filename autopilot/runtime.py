@@ -652,6 +652,12 @@ class Runtime:
         listeners = getattr(g.link, "listeners", None)
         if isinstance(listeners, list):
             listeners.append(self.on_event)
+        backlog = getattr(g.link, "backlog", None)
+        while backlog:  # (what the game said before this listened: the play session starting)
+            try:
+                self.on_event(backlog.popleft())
+            except Exception as e:  # noqa: BLE001
+                self.error("backlog", e)
         try:
             return self._run()
         finally:

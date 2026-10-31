@@ -1,0 +1,36 @@
+Harness CoinTouchHarness  goal: 'Walk into coins to pick them up; each coin touched should raise the leaderstats Coins count by its value'
+Ended: status done at t=39.8s  status=done note="coins touched; Coins rose by each one's value" evidence={"pickups": [{"coin": "Coin3", "value": 2, "coins_before": 1, "coins_after": 3, "t": 58.71}, {"coin": "Coin4", "value": 1, "coins_before": 3, "coins_after": 4, "t": 67.34}, {"coin": "Coin2", "value": 1, "coins_before": 4, "coins_after": 5, "t": 77.79}, {"coin": "Coin5", "value": 1, "coins_before": 5, "coins_after": 6, "t": 85.44}], "leaderstats_coins": 6}
+Decisions by Jev: 4
+
+Options (started / worked / failed / unknown / interrupted / timed out):
+  collect_most_valuable_coin: 2 / 2 / 0 / 0 / 0 / 0 / 0
+  collect_nearest_coin: 2 / 2 / 0 / 0 / 0 / 0 / 0
+  collect_most_valuable_coin ended because: coin gone x2
+  collect_nearest_coin ended because: coin gone x2
+
+Executor steps (steps, ms a step median/p90/max, waits on the game a step mean/max; a tick is 67 ms at tick_hz 15, the loop ran 1.2 ticks/s):
+  collect_nearest_coin: 24 steps, 500/1499/1930 ms, 1.8/7 waits
+  collect_most_valuable_coin: 21 steps, 749/1500/2001 ms, 2.5/7 waits
+  (idle): 4 steps, 0/0/0 ms, 0.0/0 waits
+
+Timeline (t: option, p, how it ended, seconds):
+  t=   0.8 collect_most_valuable_coin p=1.00 -> worked (coin gone) 10.57s
+  t=  12.2 collect_nearest_coin p=1.00 -> worked (coin gone) 9.02s
+  t=  22.1 collect_most_valuable_coin p=1.00 -> worked (coin gone) 9.62s
+  t=  32.6 collect_nearest_coin p=1.00 -> worked (coin gone) 6.78s
+
+Jev: 4 answers, latency median 0.00s; actions {'started': 4}
+First decision Jev saw (state): {"goal": "Walk into coins to pick them up; each coin touched should raise the leaderstats Coins count by its value", "situation": {"leaderstats_coins": 1, "coins_left": 4, "coins_picked_up": 0}, "options": {"collect_nearest_coin": {"coin": {"distance": 439, "direction": "behind-left", "bearing": -163, "height": 0}, "value": 2}, "collect_second_nearest_coin": {"coin": {"distance": 477, "direction": "ahead-left", "bearing": -29, "height": 0}, "value": 1}, "collect_most_valuable_coin": {"coin": {"distance": 439, "direction": "behind-left", "bearing": -163, "height": 0}, "value": 2}}, "now_doing": null, "recent": []}
+Its answer: {"collect_nearest_coin": 0.0, "collect_second_nearest_coin": 0.0, "collect_most_valuable_coin": 1.0}
+
+Situation over time (every ~5 s):
+  t=   0.8 {"leaderstats_coins": 1, "coins_left": 4, "coins_picked_up": 0}  [running] options=['collect_nearest_coin', 'collect_second_nearest_coin', 'collect_most_valuable_coin']
+  t=   6.1 {"leaderstats_coins": 1, "coins_left": 4, "coins_picked_up": 0}  [running] options=['collect_nearest_coin', 'collect_second_nearest_coin', 'collect_most_valuable_coin']
+  t=  12.2 {"leaderstats_coins": 3, "coins_left": 3, "coins_picked_up": 1}  [running] options=['collect_nearest_coin', 'collect_second_nearest_coin', 'collect_most_valuable_coin']
+  t=  19.4 {"leaderstats_coins": 3, "coins_left": 3, "coins_picked_up": 1}  [running] options=['collect_nearest_coin', 'collect_second_nearest_coin', 'collect_most_valuable_coin']
+  t=  24.8 {"leaderstats_coins": 4, "coins_left": 2, "coins_picked_up": 2}  [running] options=['collect_nearest_coin', 'collect_second_nearest_coin', 'collect_most_valuable_coin']
+  t=  29.9 {"leaderstats_coins": 4, "coins_left": 2, "coins_picked_up": 2}  [running] options=['collect_nearest_coin', 'collect_second_nearest_coin', 'collect_most_valuable_coin']
+  t=  35.0 {"leaderstats_coins": 5, "coins_left": 1, "coins_picked_up": 3}  [running] options=['collect_nearest_coin', 'collect_most_valuable_coin']
+  t=  39.8 {"leaderstats_coins": 6, "coins_left": 0, "coins_picked_up": 4}  [done] options=[]
+
+The game's error log: no errors logged during this episode.

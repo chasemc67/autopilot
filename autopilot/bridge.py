@@ -98,6 +98,26 @@ class BridgeError(requests.HTTPError):
         self.status, self.error = status, error
 
 
+BACKLOG = 200  # log lines and findings kept while nobody listens
+
+
+def new_backlog():
+    import collections
+
+    return collections.deque(maxlen=BACKLOG)
+
+
+def keep_unheard(link, event):
+    """A link's backlog: the game's log lines and findings that came while no listener was there (the play session
+    starting, before an episode's runtime listens: an error as the game starts is often the one that matters). A
+    play session that starts empties it; the runtime takes it when it starts listening (Runtime.run)."""
+    kind = event.get("kind")
+    if kind == "session" and event.get("running"):
+        link.backlog.clear()
+    elif kind in ("log", "finding") and not link.listeners:
+        link.backlog.append(event)
+
+
 class Link:
     """One connection to the plugin. send(frame) delivers a dict to it; feed(frame) takes one from it."""
 
@@ -118,6 +138,7 @@ class Link:
         self.logs = []  # log events (errors and Blueprint warnings), in arrival order
         self.messages = queue.Queue()  # other frames from the plugin: start, stop, feedback
         self.listeners = []  # callables taking each event dict
+        self.backlog = new_backlog()  # (see keep_unheard)
         self.frame_listeners = []  # callables taking each `frame` (the recording: autopilot/media.py)
         self.session_changes = 0  # how many times the plugin reported the game session starting or stopping
         self.loopback = None  # whether the plugin is on this machine (None: not known): Jev's calls go only there
@@ -296,6 +317,7 @@ class Link:
             self.logs.append(event)
         elif kind == "session":
             self.session_changes += 1
+        keep_unheard(self, event)
         for listener in list(self.listeners):
             try:
                 listener(event)

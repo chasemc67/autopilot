@@ -32,6 +32,7 @@ function Link.new(options: Options)
 	self.closed = false
 	self.problem = nil :: string?
 	self._next = 0 -- (os.clock() before which no request goes: the rate limit)
+	self._rate = Config.MAX_REQUESTS_PER_SECOND
 	self._wake = Instance.new("BindableEvent")
 	return self
 end
@@ -44,7 +45,7 @@ end
 
 -- POST to an endpoint: (ok, status code, decoded body or nil).
 function Link:_post(name: string, bodyText: string): (boolean, number, any)
-	local gap = 1 / Config.MAX_REQUESTS_PER_SECOND
+	local gap = 1 / self._rate
 	local t = os.clock()
 	if t < self._next then
 		self._next += gap
@@ -61,7 +62,14 @@ function Link:_post(name: string, bodyText: string): (boolean, number, any)
 		})
 	end)
 	if not ok then
-		return false, 0, tostring(res)
+		local why = tostring(res)
+		local low = string.lower(why)
+		if string.find(low, "exceeded", 1, true) or string.find(low, "too many", 1, true) then
+			-- (Studio's HttpService request limit: slow down, for good)
+			self._rate = math.max(Config.MIN_REQUESTS_PER_SECOND, self._rate / 2)
+			warn(string.format("Autopilot: HTTP request limit reached, now at most %g a second", self._rate))
+		end
+		return false, 0, why
 	end
 	local decoded = nil
 	pcall(function()

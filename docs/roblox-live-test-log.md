@@ -89,3 +89,45 @@ and answered "running" without starting. Fix: `startTest` waits up to 20 s for t
      (`ShopClicks = 1`).
 
 Verdict of the round: the core of the design works live. Fixes and redesign in round 2.
+
+## Round 2: 2026-10-31 13:05-13:55 PDT: redesign, re-verify
+
+Fixes and redesign (commits `4f35b87`, `6b97532`), after a Studio restart with the new plugin:
+
+- **Client agent injected at runtime by the play server** (`Agent.luau`, `PlayServer.luau`): the remotes in the play
+  test's ReplicatedStorage, the agent LocalScript (with its modules) in a `ResetOnSpawn = false` ScreenGui in each
+  player's PlayerGui. The edit plugin no longer puts anything in the place.
+- **Pictures, recording and real input from Roblox Studio's MCP server** (`autopilot/studio_mcp.py`, used by
+  `roblox_bridge.Session`): `capture` and `record` are the host's (`screen_capture`); `key` for every key but the
+  semantic ones (WASD/arrows, SpaceBar, mouse axes and buttons), `ui_act` clicks and ContextActionService `input`
+  actions become real key / mouse events (`user_keyboard_input`, `user_mouse_input` with an `instance_path`).
+- **Early errors**: `LogService:GetLogHistory()` replayed when the play server half and the client agent start.
+- Restart fix (round 1) and `engine_version`.
+
+Live checks (`tools/roblox_probe.py`, the test place built with `tools/roblox_probe.py luau tools/roblox_test_place.luau`):
+
+| Check | Command | Result |
+|---|---|---|
+| Agent injected at runtime | `session start`; `context` | `client_agent: true`; PlayerGui holds `Freecam, Hud, AutopilotClientAgent` | 
+| GUI click | `ui_act {"id":"Hud.ShopButton","action":"click"}` | `{"clicked": "Hud.ShopButton", "how": "a real mouse click ..."}` in 0.73 s; `screen` → `Hud.Status: "The shop is closed today"`; `ShopClicks = 1` |
+| CAS action | `input {"action":"Wave"}` | `{"did": "real key F (action Wave)"}`; `Waved = 2` (with `key F`) |
+| ProximityPrompt by real key | `move` to the lever, `key E` | `{"did": "real key E"}`; `Lever.Pulled == true` |
+| Capture | `capture {"max_dim":1280}` | 1292x648 JPEG in 0.28 s: [04-capture-during-play.jpg](roblox-live-evidence/04-capture-during-play.jpg) |
+| Record | `record start fps=4`, 3 s, `record stop` | 12 `frame`s fed to the link (4 fps) |
+| `view` with the test place | `view` | the Sign and SpawnLocation with distances, screen positions, sizes |
+| Codex during play | `codex_manifest` | the three test scripts + summary |
+| Restart | `session restart` | `{"running": true, "restarted": true}` in 1.65 s |
+| Edit place untouched | after `session stop`: tagged objects, StarterPlayerScripts, ReplicatedStorage | `tagged=0 SPS=[TestPlaceClient] RS=[]` (only the test place's own script) |
+| Early error | `SignText:3: attempt to index nil` at game start | **missing** from the findings before the fix (it is in `GetLogHistory()`): fixed by the replay |
+
+Other findings this round:
+
+- `autopilot connect claude` writes the **user-scope** Claude Code config (an MCP server for every project, a skill and
+  a subagent in `~/.claude`). On this shared machine that would change every agent's Claude Code, and the task allows
+  changes inside the repository only. The e2e runs load **the same files** (`python -m autopilot.connect plugin
+  .e2e/plugin`, which the tests check is what `connect claude` installs) for one session with `claude --plugin-dir`.
+- Runs need Jev (TypeSafe's hosted decision model, `TYPESAFE_API_KEY`) or Aura; neither is available here. Added a
+  clearly labelled **local stand-in** (`AUTOPILOT_JEV_STANDIN=random|first`, `runtime.StandInJev`): it picks options
+  at random and never reads the state. Everything else in the e2e runs is real.
+- Run data is shared by default (`hello.share` absent = shared, which syncs memory with Aura). The Roblox plugin has
+  no consent UI, so its hello now says `share: false`; the e2e runs also set `AUTOPILOT_SHARE=0`.

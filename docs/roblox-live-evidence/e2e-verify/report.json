@@ -1,0 +1,27 @@
+{
+ "outcome": "CONFIRMED",
+ "summary": "The agent walked into all five coins through movement input only. Every touch removed the coin, and leaderstats Coins went up by exactly that coin's Value attribute: 0\u21921\u21923\u21924\u21925\u21926 (Coin3 is worth 2). No pickup failed to count, and nothing counted twice.",
+ "evidence": [
+  "trace1.jsonl t=30.09: Coin1 (Value 1) touched and gone; leaderstats Coins 0 -> 1",
+  "trace2.jsonl t=58.71 (continuation, game time): Coin3 (Value 2) touched; Coins 1 -> 3",
+  "trace2.jsonl t=67.34: Coin4 (Value 1); Coins 3 -> 4",
+  "trace2.jsonl t=77.79: Coin2 (Value 1); Coins 4 -> 5",
+  "trace2.jsonl t=85.44: Coin5 (Value 1); Coins 5 -> 6 (final; total of all coin values is 6)",
+  "Episode 2: 4 decisions by Jev among 2-3 options (nearest / second nearest / most valuable coin); every option worked",
+  "Game error log: no errors during episode 2; episode 1 logged only a ContentId asset-type warning at t=0 (rbxassetid://203785492)",
+  "Direct changes: none in probes or episodes"
+ ],
+ "visual": false,
+ "run": "20261031-125902",
+ "project": "Place1",
+ "prompt": "Verify that touching a coin increases leaderstats Coins",
+ "seconds": 143.5,
+ "episodes": 2,
+ "tool_seconds": 86.2,
+ "stopped": null,
+ "level_modified": [],
+ "research_modified": [],
+ "agent": "external",
+ "client": "claude-code",
+ "model": null
+}

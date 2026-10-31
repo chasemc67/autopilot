@@ -1,0 +1,41 @@
+Harness CoinTouchHarness  goal: 'Walk into coins to pick them up; each coin touched should raise the leaderstats Coins count by its value'
+Ended: stalled at t=32.8s  status=running note='' evidence={"pickups": [{"coin": "Coin1", "value": 1, "coins_before": 0, "coins_after": 1, "t": 30.09}], "leaderstats_coins": 1}
+Decisions by Jev: 9
+STALLED for 30.1 s (from t=2.4s): nothing advanced the plan and no option worked (tried: collect_nearest_coin started 4, interrupted 4; collect_second_nearest_coin started 4, interrupted 3); the player moved 799 units (from [0, 0, 112] to [21, 798, 84]). Look at where the player is and what blocked it (describe_frames if it can, a probe), then revise the plan's continuation (add or change the steps from here on, or an option's approach) and go on from this state with run_harness(restart=False): the level is not restarted and the steps already done stay done.
+
+Options (started / worked / failed / unknown / interrupted / timed out):
+  collect_nearest_coin: 4 / 0 / 0 / 0 / 4 / 0 / 0
+  collect_second_nearest_coin: 4 / 0 / 0 / 0 / 4 / 0 / 0
+  collect_nearest_coin ended because: switched to collect_second_nearest_coin x4
+  collect_second_nearest_coin ended because: switched to collect_nearest_coin x3; episode ended (stalled) x1
+
+Executor steps (steps, ms a step median/p90/max, waits on the game a step mean/max; a tick is 67 ms at tick_hz 15, the loop ran 0.6 ticks/s):
+  collect_nearest_coin: 10 steps, 1000/3896/3896 ms, 4.6/11 waits
+  collect_second_nearest_coin: 8 steps, 1882/2114/2114 ms, 4.6/7 waits
+  (idle): 2 steps, 0/0/0 ms, 0.0/0 waits
+  SLOW STEPS: collect_nearest_coin (~1000 ms a step, 4.6 waits of ~217 ms). Every read waits for the game's answer (about a frame) and reads one after another add up: a step reacts to what it read that long ago, and the next step comes that much later. Gather a step's reads into one game.batch([...]) (one wait) and read only what the step needs. A reaction timed to the game (dodging before a hit lands, jumping at an edge) must allow for the step time, which changes with the frame rate.
+
+Timeline (t: option, p, how it ended, seconds):
+  t=   2.8 collect_nearest_coin p=1.00 -> stopped (switched to collect_second_nearest_coin) 5.25s
+  t=   8.0 collect_second_nearest_coin p=1.00 -> stopped (switched to collect_nearest_coin) 3.13s
+  t=  11.2 collect_nearest_coin p=1.00 -> stopped (switched to collect_second_nearest_coin) 3.12s
+  t=  14.3 collect_second_nearest_coin p=1.00 -> stopped (switched to collect_nearest_coin) 3.12s
+  t=  17.4 collect_nearest_coin p=1.00 -> stopped (switched to collect_second_nearest_coin) 3.13s
+  t=  20.6 collect_second_nearest_coin p=1.00 -> stopped (switched to collect_nearest_coin) 3.63s
+  t=  24.2 collect_nearest_coin p=1.00 -> stopped (switched to collect_second_nearest_coin) 5.07s
+  t=  29.2 collect_second_nearest_coin p=1.00 -> stopped (episode ended (stalled)) 3.5s
+
+Jev: 9 answers, latency median 0.00s; actions {'started': 1, 'switched': 7, 'kept': 1}
+First decision Jev saw (state): {"goal": "Walk into coins to pick them up; each coin touched should raise the leaderstats Coins count by its value", "situation": {"leaderstats_coins": 0, "coins_left": 5, "coins_picked_up": 0}, "options": {"collect_nearest_coin": {"coin": {"distance": 560, "direction": "right", "bearing": 90, "height": -28}, "value": 1}, "collect_second_nearest_coin": {"coin": {"distance": 896, "direction": "behind-right", "bearing": 141, "height": -28}, "value": 1}, "collect_most_valuable_coin": {"coin": {"distance": 1066, "direction": "right", "bearing": 67, "height": -28}, "value": 2}}, "now_doing": null, "recent": []}
+Its answer: {"collect_nearest_coin": 1.0, "collect_second_nearest_coin": 0.0, "collect_most_valuable_coin": 0.0}
+
+Situation over time (every ~5 s):
+  t=   2.8 {"leaderstats_coins": 0, "coins_left": 5, "coins_picked_up": 0}  [running] options=['collect_nearest_coin', 'collect_second_nearest_coin', 'collect_most_valuable_coin']
+  t=  10.3 {"leaderstats_coins": 0, "coins_left": 5, "coins_picked_up": 0}  [running] options=['collect_nearest_coin', 'collect_second_nearest_coin', 'collect_most_valuable_coin']
+  t=  16.6 {"leaderstats_coins": 0, "coins_left": 5, "coins_picked_up": 0}  [running] options=['collect_nearest_coin', 'collect_second_nearest_coin', 'collect_most_valuable_coin']
+  t=  23.2 {"leaderstats_coins": 0, "coins_left": 5, "coins_picked_up": 0}  [running] options=['collect_nearest_coin', 'collect_second_nearest_coin', 'collect_most_valuable_coin']
+  t=  28.7 {"leaderstats_coins": 0, "coins_left": 5, "coins_picked_up": 0}  [running] options=['collect_nearest_coin', 'collect_second_nearest_coin', 'collect_most_valuable_coin']
+  t=  31.5 {"leaderstats_coins": 1, "coins_left": 4, "coins_picked_up": 1}  [running] options=['collect_nearest_coin', 'collect_second_nearest_coin', 'collect_most_valuable_coin']
+
+What the game's own detectors and error log reported (count, first time):
+  x2 t=0.0 game_log: [Warning] server: ContentId: rbxassetid://203785492 failed due to: Asset type does not match requested type

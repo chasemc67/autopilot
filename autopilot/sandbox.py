@@ -32,6 +32,7 @@ import threading
 import traceback
 import types
 
+from . import bridge
 from .words import plain_words
 
 HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -276,6 +277,7 @@ class ProxyLink:
         self.hello = hello
         self.loopback = loopback
         self.listeners = []
+        self.backlog = bridge.new_backlog()  # (bridge.keep_unheard)
         self.game_time = None
         self.closed = None
         self.pending = {}
@@ -419,6 +421,7 @@ def child_main():
         if kind == "res":
             link.answer(msg)
         elif kind == "event":
+            bridge.keep_unheard(link, msg["event"])
             for listener in list(link.listeners):
                 try:
                     listener(msg["event"])

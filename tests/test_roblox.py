@@ -900,3 +900,19 @@ def test_the_plugin_has_no_game_names():
         text = _src(f)
         for word in ("Obby", "Tycoon", "Lava"):
             assert word not in text or f == "Dock.luau", (f, word)  # (the dock's placeholder is an example)
+
+
+def test_what_the_game_said_before_anyone_listened_is_kept_for_the_episode():
+    # (a Roblox game's scripts run as the play test starts, before an episode's runtime listens: its errors then are
+    # kept in the link's backlog, which Runtime.run takes)
+    link = bridge.Link(lambda frame: None)
+    early = {"kind": "log", "verbosity": "Error", "category": "server", "message": "SignText:3: attempt to index nil"}
+    link.feed({"type": "events", "events": [{"kind": "session", "running": True}, early]})
+    assert list(link.backlog) == [early]
+    heard = []
+    link.listeners.append(heard.append)
+    link.feed({"type": "events", "events": [{"kind": "log", "verbosity": "Warning", "message": "later"}]})
+    assert list(link.backlog) == [early] and heard[-1]["message"] == "later"
+    link.listeners.clear()
+    link.feed({"type": "events", "events": [{"kind": "session", "running": True}]})  # (a new play test)
+    assert not link.backlog
