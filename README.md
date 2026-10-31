@@ -4,7 +4,7 @@
 
 ![Aura by Ramen](./assets/aura-logo.png)
 
-Autopilot is a continually learning real-time general playtesting system. It supports Unreal Engine 5, Unity 6, and Godot 4 on both Windows and MacOS.
+Autopilot is a continually learning real-time general playtesting system. It supports Unreal Engine 5, Unity 6, and Godot 4 on both Windows and MacOS, and (experimental, see [Roblox Studio](#roblox-studio-experimental)) Roblox Studio.
 
 Install Autopilot into your project and let it learn your game, explore your levels, and improve its gameplay run after run.
 
@@ -73,10 +73,37 @@ For every prompt, Autopilot will automatically launch a PIE window and start rea
 
 Your first few runs allow Autopilot to learn about your game as it gradually populates its memory. Expect some suboptimal behavior for the first few harness attempts. **Autopilot visibly improves the more it plays your game**, and later harness attempts and runs both take a shorter time to complete a given task, as well as exhibit more intelligent behavior (e.g. faster dodging, equipping better weapons, playing smarter strategies, better aiming).
 
+## Roblox Studio (experimental)
+
+> **UNVERIFIED.** Roblox Studio support was written and tested offline only (unit tests, a fake plugin against the real
+> bridge, selene/stylua/Rojo on the Luau). It has not been run in Roblox Studio yet. The full design, install steps
+> and limits are in [docs/roblox.md](docs/roblox.md).
+
+A Roblox Studio plugin can't open a WebSocket, so the plugin (`plugin/roblox`) long-polls a small HTTP bridge that
+`autopilot serve` runs next to its WebSocket (`http://127.0.0.1:8766/v1/roblox`, guarded by a token).
+
+**Install** (from a clone, with Autopilot installed: see [CONTRIBUTING.md](CONTRIBUTING.md#development-setup)):
+
+1. `autopilot roblox install`: builds the plugin into one `Autopilot.server.lua` with this computer's token and copies
+   it into Studio's Plugins folder (`~/Documents/Roblox/Plugins` on macOS, `%LOCALAPPDATA%\Roblox\Plugins` on
+   Windows).
+2. Restart Studio and open your place. Allow the plugin's HTTP requests to `127.0.0.1` when Studio asks, and turn on
+   **Game Settings > Security > Allow HTTP Requests**.
+3. Run `autopilot serve`, then open the **Autopilot** dock from the Plugins tab. `autopilot roblox status` checks the
+   setup.
+
+**Use**: type a prompt in the dock and press **Start** (the same four prompt types as below), or connect your own
+Claude Code / Codex with `autopilot connect claude|codex`.
+
+**Known limits**: input is semantic (a plugin can't make real key events: movement keys walk the Humanoid, Space jumps,
+the mouse turns the camera, keys trigger ProximityPrompts, Tools and ContextActionService actions; keys a game reads
+only through `UserInputService` do nothing); GUI buttons can't be clicked; no recording, and screenshots only with
+`AUTOPILOT_ROBLOX_SCREENSHOT=1` (a screenshot of the whole screen); `pause` does nothing; one player in Play mode.
+
 ## Uninstallation
 
 1. In Autopilot, go to Settings and click Uninstall. By default, Autopilot keeps your project's memories; you can choose to delete memories instead (this is a destructive action).
-2. Remove the plugin from each project: Unreal, close the editor and delete `Plugins/Autopilot/`; Unity, remove the Autopilot package in the Package Manager; Godot, disable Autopilot in Project > Project Settings > Plugins, then delete `addons/autopilot/`.
+2. Remove the plugin from each project: Unreal, close the editor and delete `Plugins/Autopilot/`; Unity, remove the Autopilot package in the Package Manager; Godot, disable Autopilot in Project > Project Settings > Plugins, then delete `addons/autopilot/`; Roblox Studio, run `autopilot roblox uninstall` (or delete `Autopilot.server.lua` from Studio's Plugins folder).
 
 ---
 
