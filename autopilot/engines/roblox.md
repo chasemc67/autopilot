@@ -13,7 +13,8 @@
   (`game.get(path, "Transparency")`), its **attributes** (`GetAttribute`: `game.get(path, "Health")` falls back to an
   attribute of that name) and the `Value` of a ValueBase child (`game.get("/Players/<Name>/leaderstats", "Coins")`).
   `game.props(path)` gives the usual properties of its class, its attributes and its value children. `game.call` calls
-  a method, parameters in order (`game.call(path, "GetChildren")`). Scripts' local variables and module tables can't
+  a method; Roblox methods take their arguments in order, so pass them as a list: `game.call(path, "FindFirstChild",
+  args=["Door"])` (none: `game.call(path, "GetChildren")`); an argument starting with "/" is an instance path. Scripts' local variables and module tables can't
   be read: what the game keeps in attributes, Value objects and leaderstats can.
 - **Values from `game.get` are Roblox's own**: studs, Roblox's axes (x right, y up, -z forward), a Vector3 as
   `{"x","y","z"}`, a CFrame as `{"position", "orientation"}` (degrees), a Color3 as `{"r","g","b"}`, an instance as its

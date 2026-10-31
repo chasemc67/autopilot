@@ -27,6 +27,7 @@ import json
 import os
 import secrets
 import shutil
+import socketserver
 import struct
 import subprocess
 import sys
@@ -342,16 +343,19 @@ class Session:
     # -- the plugin's frames in ------------------------------------------------------------------------------
 
     def attach(self, context):
+        """A channel joins (again). A play channel that joins while one of its kind is there replaces it."""
+        replaced, failed = None, []
         with self.cond:
             old = self.channels.get(context)
-            if old is not None and not old.gone and context != "edit":
-                self._drop(old, "replaced by a new play test")
-            ch = self.channels.get(context)
-            if ch is None or ch.gone or context != "edit":
-                self.channels[context] = Channel(context)
+            if context == "edit" and old is not None and not old.gone:
+                old.last_seen = time.monotonic()
             else:
-                ch.last_seen = time.monotonic()
+                if old is not None and not old.gone:
+                    replaced, failed = old, self._drop(old)
+                self.channels[context] = Channel(context)
             self.cond.notify_all()
+        if replaced is not None:
+            self._fail(replaced, failed, "replaced by a new play test")
 
     def incoming(self, context, frame):
         if not isinstance(frame, dict):
@@ -393,27 +397,32 @@ class Session:
             ch = self.channels.get(context)
             if ch is None or ch.gone:
                 return
-            self._drop(ch, why)
+            failed = self._drop(ch)
+        self._fail(ch, failed, why)
         if context == "edit":
             self.close(why)
 
-    def _drop(self, ch, why):
-        """A channel ends (under the lock): the brain's requests it holds are answered with an error."""
+    def _drop(self, ch):
+        """A channel ends (under the lock): the ids of the brain's requests it held, unanswered (see _fail)."""
         ch.gone = True
         routed, ch.routed = list(ch.routed), set()
         waiting = [f for f in ch.frames if f.get("type") == "request"]
         ch.frames.clear()
         if ch.context != "edit":  # (what was queued for the play test goes nowhere: it ended)
             routed += [f.get("id") for f in waiting if f.get("id") not in routed]
+        self.cond.notify_all()
+        return routed
+
+    def _fail(self, ch, routed, why):
+        """Answer the requests a channel that ended held with an error (outside the lock: feeding the link may send)."""
         for rid in routed:
-            entry = self._internal.get(rid)
+            with self.cond:
+                entry = self._internal.get(rid)
             if entry is not None:
                 entry[1] = {"ok": False, "status": 409, "error": f"{NO_GAME} ({why})"}
                 entry[0].set()
             else:
-                threading.Thread(target=self._answer, args=(rid,),
-                                 kwargs={"error": f"{NO_GAME} ({why})", "status": 409}, daemon=True).start()
-        self.cond.notify_all()
+                self._answer(rid, error=f"{NO_GAME} ({why})", status=409)
         if ch.context != "edit":
             self.link.feed({"type": "events", "events": [{"kind": "session", "running": False, "why": why}]})
 
@@ -422,7 +431,7 @@ class Session:
         now = time.monotonic() if now is None else now
         with self.cond:
             stale = [c for c, ch in self.channels.items() if not ch.gone and now - ch.last_seen > CHANNEL_TIMEOUT]
-        for context in stale:
+        for context in sorted(stale, key=lambda c: c == "edit"):  # (the play test's first: the edit's closes all)
             self.detach(context, f"the Roblox plugin ({context}) stopped polling")
 
     def close(self, why):
@@ -433,6 +442,17 @@ class Session:
 
 
 # -- the HTTP server ----------------------------------------------------------------------------------------------
+
+class _Server(ThreadingHTTPServer):
+    daemon_threads = True
+
+    def server_bind(self):
+        # (HTTPServer's own asks socket.getfqdn() for the server's name, which can stall for half a minute on a Mac
+        # whose DNS doesn't answer for its own address: the name is never used here)
+        socketserver.TCPServer.server_bind(self)
+        host, port = self.server_address[:2]
+        self.server_name, self.server_port = host, port
+
 
 class RobloxBridge:
     """The HTTP front door for Roblox plugins. on_link(link) is called with each new session's Link (serve_local
@@ -459,8 +479,7 @@ class RobloxBridge:
             def do_POST(self):
                 bridge_self._handle(self, "POST")
 
-        self.server = ThreadingHTTPServer((host, port), Handler)
-        self.server.daemon_threads = True
+        self.server = _Server((host, port), Handler)
         self.port = self.server.server_address[1]
         self.url = f"http://{host}:{self.port}{PREFIX}"
         self._stop = threading.Event()
