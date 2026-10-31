@@ -1,0 +1,52 @@
+Harness CoinsAndGoalHarness  goal: 'Pick up every coin (walk into it), then walk through the door (open at 5+ coins) onto the green goal pad'
+Ended: status done at t=30.8s  status=done note='all coins picked up and the goal pad reached' evidence={"coins": 6, "coins_left": 0, "door_open": true, "reached_goal": true}
+Decisions by Jev: 8
+
+Plan (the steps in order):
+  1. collect_coins: done at t=22.3s  (Pick up all 5 coins)
+  2. reach_goal: done at t=30.5s  (Stand on the goal pad past the door)
+
+Options (started / worked / failed / unknown / interrupted / timed out):
+  collect_nearest_coin: 2 / 2 / 0 / 0 / 0 / 0 / 0
+  collect_second_nearest_coin: 2 / 1 / 0 / 0 / 1 / 0 / 0
+  collect_most_valuable_coin: 1 / 1 / 0 / 0 / 0 / 0 / 0
+  walk_to_door: 1 / 1 / 0 / 0 / 0 / 0 / 0
+  walk_to_goal_pad: 1 / 0 / 0 / 0 / 1 / 0 / 0
+  collect_nearest_coin ended because: coin gone x2
+  collect_second_nearest_coin ended because: coin gone x1; switched to collect_most_valuable_coin x1
+  collect_most_valuable_coin ended because: coin gone x1
+  walk_to_door ended because: arrived x1
+  walk_to_goal_pad ended because: episode ended (status done) x1
+
+Executor steps (steps, ms a step median/p90/max, waits on the game a step mean/max; a tick is 67 ms at tick_hz 15, the loop ran 2.7 ticks/s):
+  collect_nearest_coin: 27 steps, 132/565/858 ms, 1.7/6 waits
+  collect_second_nearest_coin: 25 steps, 283/716/899 ms, 1.8/6 waits
+  collect_most_valuable_coin: 12 steps, 418/717/857 ms, 2.1/6 waits
+  (idle): 7 steps, 0/0/0 ms, 0.0/0 waits
+  walk_to_door: 7 steps, 284/581/581 ms, 2.0/4 waits
+  walk_to_goal_pad: 5 steps, 583/933/933 ms, 3.8/6 waits
+
+Timeline (t: option, p, how it ended, seconds):
+  t=   0.3 collect_nearest_coin p=1.00 -> worked (coin gone) 2.33s
+  t=   2.9 collect_second_nearest_coin p=1.00 -> worked (coin gone) 4.15s
+  t=   7.3 collect_nearest_coin p=1.00 -> worked (coin gone) 4.15s
+  t=  11.7 collect_second_nearest_coin p=1.00 -> stopped (switched to collect_most_valuable_coin) 5.72s
+  t=  17.5 collect_most_valuable_coin p=1.00 -> worked (coin gone) 5.42s
+  t=  23.2 walk_to_door p=1.00 -> worked (arrived) 3.33s
+  t=  26.8 walk_to_goal_pad p=1.00 -> stopped (episode ended (status done)) 4.0s
+
+Jev: 8 answers, latency median 0.00s; actions {'started': 6, 'switched': 1, 'kept': 1}
+First decision Jev saw (state): {"goal": "Pick up every coin (walk into it), then walk through the door (open at 5+ coins) onto the green goal pad", "situation": {"coins": 0, "coins_total_value": 6, "coins_left": 5, "door_open": false, "reached_goal": false, "door": {"distance": 2240, "direction": "right", "bearing": 90, "height": 56}, "goal_pad": {"distance": 2800, "direction": "right", "bearing": 90, "height": -98}}, "options": {"collect_nearest_coin": {"coin": {"distance": 560, "direction": "right", "bearing": 90, "height": -28}, "value": 1}, "collect_most_valuable_coin": {"coin": {"distance": 1066, "direction": "right", "bearing": 67, "height": -28}, "value": 2}, "collect_second_nearest_coin": {"coin": {"distance": 896, "direction": "behind-right", "bearing": 141, "height": -28}, "value": 1}}, "now_doing": null, "recent": [], "plan": {"done": [], "now": {"step": "collect_coins", "what": "Pick up all 5 coins", "for_seconds": 0.1}, "next": ["Stand on the goal pad past the door"]}}
+Its answer: {"collect_nearest_coin": 1.0, "collect_most_valuable_coin": 0.0, "collect_second_nearest_coin": 0.0}
+
+Situation over time (every ~5 s):
+  t=   0.2 {"coins": 0, "coins_total_value": 6, "coins_left": 5, "door_open": false, "reached_goal": false, "door": {"distance": 2240, "direction": "right", "bearing": 90, "height": 56}, "goal_pad": {"distance": 2800, "direction": "right", "bearing": 90, "height": -98}}  [running] options=['collect_nearest_coin', 'collect_most_valuable_coin', 'collect_second_nearest_coin'] step=collect_coins
+  t=   5.5 {"coins": 1, "coins_total_value": 6, "coins_left": 4, "door_open": false, "reached_goal": false, "door": {"distance": 1563, "direction": "ahead-left", "bearing": -43, "height": 84}, "goal_pad": {"distance": 2121, "direction": "ahead-left", "bearing": -42, "height": -70}}  [running] options=['collect_nearest_coin', 'collect_most_valuable_coin', 'collect_second_nearest_coin'] step=collect_coins
+  t=  11.4 {"coins": 3, "coins_total_value": 6, "coins_left": 2, "door_open": false, "reached_goal": false, "door": {"distance": 1723, "direction": "behind", "bearing": -171, "height": 84}, "goal_pad": {"distance": 2248, "direction": "behind", "bearing": -166, "height": -70}}  [running] options=['collect_nearest_coin', 'collect_most_valuable_coin', 'collect_second_nearest_coin'] step=collect_coins
+  t=  16.9 {"coins": 3, "coins_total_value": 6, "coins_left": 2, "door_open": false, "reached_goal": false, "door": {"distance": 1374, "direction": "right", "bearing": 76, "height": 84}, "goal_pad": {"distance": 1934, "direction": "right", "bearing": 75, "height": -70}}  [running] options=['collect_nearest_coin', 'collect_most_valuable_coin', 'collect_second_nearest_coin'] step=collect_coins
+  t=  22.8 {"coins": 6, "coins_total_value": 6, "coins_left": 0, "door_open": true, "reached_goal": false, "door": {"distance": 716, "direction": "ahead-left", "bearing": -43, "height": 84}, "goal_pad": {"distance": 1276, "direction": "ahead-left", "bearing": -43, "height": -70}}  [running] options=['walk_to_door', 'walk_to_goal_pad'] step=reach_goal
+  t=  28.1 {"coins": 6, "coins_total_value": 6, "coins_left": 0, "door_open": true, "reached_goal": false, "door": {"distance": 85, "direction": "ahead", "bearing": -2, "height": 84}, "goal_pad": {"distance": 645, "direction": "ahead", "bearing": 3, "height": -70}}  [running] options=['walk_to_door', 'walk_to_goal_pad'] step=reach_goal
+  t=  30.8 {"coins": 6, "coins_total_value": 6, "coins_left": 0, "door_open": true, "reached_goal": true, "door": {"distance": 634, "direction": "behind", "bearing": -180, "height": 56}, "goal_pad": {"distance": 74, "direction": "behind", "bearing": 178, "height": -98}}  [done] options=['walk_to_door', 'walk_to_goal_pad']
+
+What the game's own detectors and error log reported (count, first time):
+  x2 t=0.0 game_log: [Warning] server: ContentId: rbxassetid://203785492 failed due to: Asset type does not match requested type

@@ -1,9 +1,12 @@
 # Autopilot for Roblox Studio
 
-> **Status: experimental, UNVERIFIED.** Everything on the Roblox side of this document (the plugin's Luau, the Studio
-> APIs it calls, the HTTP bridge as seen from Studio) was written and unit-tested offline only. It has **not** been run
-> against a real Roblox Studio yet. Statements below that depend on Studio's behaviour and that nobody has checked are
-> marked **UNVERIFIED**. The Python half (the host bridge, the engine adapter, the CLI) is covered by the test suite.
+> **Status: experimental; the core is VERIFIED live** in Roblox Studio 0.745 on macOS (October 2026), in a throwaway
+> Baseplate place: install, the handshake, Play start / stop / restart, reading the game and its scripts, moving and
+> acting as the player, real keys and GUI clicks, pictures and recording, logs and errors, and runs of all four
+> prompt kinds through `autopilot serve` and Claude Code (with a local stand-in for the decision model: section 8).
+> The log of every check, with the commands and their output, is [roblox-live-test-log.md](roblox-live-test-log.md);
+> screenshots are in [roblox-live-evidence/](roblox-live-evidence/). What was not checked is still marked
+> **UNVERIFIED** (Windows, Team Test, published places, games with their own input stacks).
 
 Roblox Studio is the fourth engine next to Unreal 5, Unity 6 and Godot 4. This page is the design note (what maps to
 what, and why) followed by the install and usage instructions.
@@ -55,16 +58,18 @@ Read this first if you are new to the repository; it is what the Roblox port has
 
 | Limit | Consequence for Autopilot |
 |---|---|
-| A plugin can't open sockets or listen. `HttpService:RequestAsync` is its only way out (HTTP/HTTPS, JSON in strings). (`HttpService:CreateWebStreamClient` exists for WebSocket/SSE, but its availability to plugins and to localhost is UNVERIFIED, so it is not used.) | The brain gets a second, **HTTP long-poll** front door (`autopilot/roblox_bridge.py`) next to the WebSocket. The plugin polls it. |
-| Plugin HTTP to `localhost` needs the plugin's **HTTP Requests** permission (Studio prompts once per domain). In a play session's server, `HttpService.HttpEnabled` (Game Settings > Security > **Allow HTTP Requests**) may also be required (UNVERIFIED). | Install step: allow both. |
-| Game servers are limited to about 500 HTTP requests a minute (UNVERIFIED whether this applies to a plugin in Studio's play server). | The plugin batches frames and piggybacks its outgoing frames on its polls; it caps itself at 8 requests a second. |
-| Plugin `Script`s run once **per DataModel**: the edit DataModel, and during a play test also the play **server** and the play **client** (`RunService:IsEdit/IsServer/IsClient`). They can't share Lua state. | The edit instance is the "editor" (it says `hello`, owns the run UI, starts play, serves the codex). The play-server instance attaches to the same session as a second channel and answers the game ops. The host routes each request to the right channel. |
-| No OS-level input from Luau. `VirtualInputManager` is RobloxScriptSecurity: not callable by plugins (UNVERIFIED that this holds in every Studio build). `UserInputService` events can't be faked. | Input is **semantic**, done by a client agent `LocalScript`: movement keys become `Humanoid:Move`, `SpaceBar` sets `Humanoid.Jump`, mouse axes turn the `Camera`, `E`-style keys trigger the nearest `ProximityPrompt` (`InputHoldBegin/End`), `LeftMouseButton` activates the equipped `Tool`, and any key or action bound through `ContextActionService` is called with `ContextActionService:CallFunction`. A game that reads raw `UserInputService.InputBegan` won't see these keys: the agent is told so (`autopilot/engines/roblox.md`). |
-| No screen capture from Luau (no API reads pixels; `CaptureService` produces a content id, not bytes). | `capture` is answered **on the host**, optionally: with `AUTOPILOT_ROBLOX_SCREENSHOT=1` the bridge takes an OS screenshot (macOS `screencapture`, Windows PowerShell). Off by default (it grabs the whole screen); then `capture` answers 409 "no picture". `record` is not supported (409). |
-| GUI buttons can't be clicked from Luau: there is no `GuiButton:Activate()`, and `Activated` can't be fired. | `ui` lists buttons, text boxes and their texts; `ui_act` `set` changes a `TextBox`'s text (no `FocusLost` fires); **clicks answer 501** with an explanation the agent reads. An UNVERIFIED alternative for later: `GuiService.SelectedObject` plus gamepad emulation (needs VirtualInputManager). |
+| A plugin can't open sockets or listen. `HttpService:RequestAsync` is its only way out (HTTP/HTTPS, JSON in strings). (`HttpService:CreateWebStreamClient` was not tried.) | The brain gets a second, **HTTP long-poll** front door (`autopilot/roblox_bridge.py`) next to the WebSocket. The plugin polls it. |
+| HTTP to `localhost` from a plugin. | VERIFIED: a plugin file in the Plugins folder reached `127.0.0.1` from the edit **and** the play-server DataModel with **no permission prompt** and with the place's **Allow HTTP Requests off** (`HttpEnabled = false`). Nothing to turn on. |
+| Studio holds a play test's server to Roblox's HttpService budget, **about 500 requests a minute**, plugins included (VERIFIED: at 30 a second Studio refused requests within seconds). | The plugin spends one request per question (the poll that will carry an answer waits for it, then waits at the bridge for the next request), from a token bucket of 7 a second (420 a minute) with bursts of 40; it halves its rate if Studio ever refuses one. Measured: 17 ms a server answer, 67 ms a client one, 7 sustained questions a second (section 8). |
+| Plugin `Script`s run once **per DataModel**: the edit DataModel and, during a play test, the play **server** (VERIFIED). Not in the play client. They can't share Lua state. | The edit instance is the "editor" (it says `hello`, owns the dock, starts play, serves the codex). The play-server instance attaches to the same session as a second channel and answers the game ops. The host routes each request to the right channel. |
+| The client is reached through a script in the game. | VERIFIED: a `LocalScript` the **play server** creates at runtime and sets the `Source` of (with `ModuleScript` children) replicates **with its source** and runs in the client. So the play-server instance puts the client agent in each player's `PlayerGui` itself: the edit place is never touched, and Studio's own Play button gets it too. |
+| No OS-level input from Luau: `VirtualInputManager` and `ContextActionService:CallFunction` are RobloxScript-only (VERIFIED: "lacking capability RobloxScript"). | Two layers. **Semantic** input in the client agent for movement and the camera (`Humanoid:Move`, `Humanoid.Jump`, the camera's `CFrame`, the equipped `Tool`, `ProximityPrompt:InputHoldBegin/End`: all VERIFIED). **Real** input through Roblox Studio's own MCP server (section 4, "Pictures and real input") for every other key, `ContextActionService` actions and GUI clicks (VERIFIED). |
+| No screen capture from Luau (no API reads pixels). | `capture` and `record` are the host's: Roblox Studio's own MCP server's `screen_capture` gives the game viewport as a JPEG (VERIFIED: 0.3 s a picture, with Studio in the background). Fallback: `AUTOPILOT_ROBLOX_SCREENSHOT=screen` takes the whole screen. |
+| GUI buttons can't be clicked from Luau (no `GuiButton:Activate()`; `Activated` can't be fired). | `ui_act` click: the client agent names the button (`LocalPlayer.PlayerGui.<...>`), the host clicks it for real through Studio's MCP server (VERIFIED: `Activated` fired). Without it: 501. |
 | A plugin can't read the place's file path; an unpublished place has `PlaceId` 0. | `context.project_dir` is empty; the codex comes from the plugin's export (all scripts' `Source`), or from a Rojo project / `.rbxlx` on disk given with `--project`. |
-| `StudioTestService:ExecutePlayModeAsync(args)` starts a play test from the edit DataModel and yields until it ends; `StudioTestService:EndTest(result)` ends it and must be called from the play **server**; `GetTestArgs()` reads `args` there. (Documented API; behaviour as described here is UNVERIFIED.) | `session start` → edit plugin calls `ExecutePlayModeAsync({session=...})`; the play-server plugin reads the session from `GetTestArgs()` and attaches. `session stop` is routed to the play server, which calls `EndTest`. `restart` = stop, wait for the play channel to go, start. |
+| `StudioTestService:ExecutePlayModeAsync(args)` starts a play test from the edit DataModel and yields until it ends; `EndTest(result)` ends it from the play server; `GetTestArgs()` reads `args` there. | VERIFIED as described. `session start` → the edit plugin calls `ExecutePlayModeAsync({autopilot_session=...})`; the play-server plugin reads the session from `GetTestArgs()` and attaches; `session stop` is routed to the play server (`EndTest`); `restart` = stop, wait for the play channel to go, start (the edit plugin waits for `ExecutePlayModeAsync` to return first). |
 | Running scripts can't be paused from Luau. | `pause` answers `{"paused": false, "note": ...}` (no-op), as Godot's `timestep` note does. |
+| Studio doesn't load a plugin file added (or changed) while it runs. | After `autopilot roblox install`, restart Studio (VERIFIED: no hot reload of a `.lua` plugin file). |
 
 ## 3. What maps to what
 
@@ -82,34 +87,37 @@ Read this first if you are new to the repository; it is what the Roblox port has
 | `rc property` | instance properties by name (a curated list per class for "all"), plus **attributes** (`GetAttributes`) and the `Value` of `ValueBase` children (leaderstats) |
 | `rc call` | a method on an instance; Roblox methods take positional arguments, so they come as a list: `game.call(path, "FindFirstChild", args=["Door"])` (a JSON object loses its order on the way through `HttpService:JSONDecode`) |
 | `screen` | visible `TextLabel` / `TextButton` / `TextBox` texts under `PlayerGui`, keyed `<ScreenGui>.<Name>` |
-| `ui` / `ui_act` | buttons and text boxes in `PlayerGui`; `ui_act` `set` on a TextBox; clicks: 501 (see limits) |
-| `key` / `input` / `move` | the client agent's semantic input (see limits) |
+| `ui` / `ui_act` | buttons and text boxes in `PlayerGui`; `ui_act` `set` on a TextBox; `click`: a real mouse click on the button through Studio's MCP server (else 501) |
+| `key` | W A S D / arrows, SpaceBar, MouseX / MouseY, mouse buttons: the client agent (semantic, timed in game frames); every other key: a real key event through Studio's MCP server (held keys are leased or timed on the host), else the client agent's semantic fallback |
+| `input` | a ProximityPrompt (by `ActionText` or name): the client agent; a ContextActionService action: its key, pressed for real |
+| `move` | the client agent's `Humanoid:Move` for N seconds |
 | `view` | parts / models in front of the camera (`Camera:WorldToViewportPoint`) with a line of sight (`Workspace:Raycast`) |
 | `watch` | positions and `Transparency` sampled for N seconds on the server |
-| logs / findings | `LogService.MessageOut` (server and, through the client agent, client): `log` events and `log_error` findings |
+| logs / findings | `LogService.MessageOut` (server and, through the client agent, client): `log` events and `log_error` findings; what was logged before the plugin's play-server half or the client agent started (`LogService:GetLogHistory()`) is sent first |
 | heartbeat, game time | play server, every second; `t` = `workspace.DistributedGameTime` |
 | codex | every `LuaSourceContainer`'s `Source` as `scripts/<Service>/<path>.server.luau|.client.luau|.luau`, plus `summary.txt` (services' trees, RemoteEvents, StarterPlayer settings, tags, attributes) |
-| capture / record | host-side screenshot, opt-in / not supported |
+| capture / record | the host's, through Studio's MCP server `screen_capture` (record: a picture every 1/fps s, at most 4 a second) |
 
 ## 4. Architecture
 
 ```
           Roblox Studio                                               autopilot serve
- ┌───────────────────────────┐   HTTP (long-poll, token)   ┌─────────────────────────────────────┐
- │ edit DataModel            │ ──── POST /v1/roblox/hello ─▶│ roblox_bridge.RobloxBridge          │
- │  Autopilot plugin (edit)  │ ◀─── exchange (frames) ─────▶│   one bridge.Link per session       │
- │  toolbar + dock: prompt   │                             │   routes each request to a channel: │
- │  session start, codex     │                             │     edit  : session, codex, status   │
- ├───────────────────────────┤                             │     play  : everything in the game   │
- │ play server DataModel     │ ──── POST /v1/roblox/attach ▶│     host  : capture (opt-in), record │
- │  Autopilot plugin (server)│ ◀─── exchange (frames) ─────▶│   synthesises 409 "No game is        │
- │  world ops, logs, EndTest │                             │   running" when no play channel      │
- │      │ RemoteFunction      │                             └─────────────────────────────────────┘
- │      ▼                     │                                   │ same bridge.Link interface
- │ play client DataModel     │                                   ▼
- │  AutopilotClientAgent     │                       cli / agents / kit / runtime (unchanged)
- │  (LocalScript): camera,   │
- │  input, GUI, pose         │
+ ┌───────────────────────────┐   HTTP (long-poll, token)   ┌──────────────────────────────────────┐
+ │ edit DataModel            │ ──── POST /v1/roblox/hello ─▶│ roblox_bridge.RobloxBridge           │
+ │  Autopilot plugin (edit)  │ ◀─── exchange (frames) ─────▶│   one bridge.Link per session        │
+ │  toolbar + dock: prompt   │                             │   routes each request to a channel:  │
+ │  session start, codex     │                             │     edit  : session, codex, status    │
+ ├───────────────────────────┤                             │     play  : everything in the game    │
+ │ play server DataModel     │ ──── POST /v1/roblox/attach ▶│     host  : capture, record, real     │
+ │  Autopilot plugin (server)│ ◀─── exchange (frames) ─────▶│             keys, clicks, CAS actions │
+ │  world ops, logs, EndTest │                             │   synthesises 409 "No game is         │
+ │  puts the client agent in │                             │   running" when no play channel       │
+ │      │ RemoteFunction      │                             └──────────────────────────────────────┘
+ │      ▼                     │       stdio JSON-RPC                │            │ same bridge.Link interface
+ │ play client DataModel     │ ◀── StudioMCP (Studio's own ───────┘            ▼
+ │  AutopilotClientAgent     │     MCP server): screen_capture,      cli / agents / kit / runtime
+ │  (LocalScript in PlayerGui│     user_keyboard_input,              (unchanged)
+ │  ): camera, movement, GUI │     user_mouse_input
  └───────────────────────────┘
 ```
 
@@ -135,34 +143,60 @@ Read this first if you are new to the repository; it is what the Roblox port has
   - A channel that hasn't polled for 60 s is dropped the same way.
 - **Studio's own Play button.** A play test started by hand (not by Autopilot) has no test arguments; its server
   instance joins the session the dock is connected to (kept in the plugin's settings), and stays out of the way when
-  the dock isn't connected. Without the client agent (only Autopilot's own starts put it in), camera, input and GUI
-  requests answer 409.
+  the dock isn't connected. It puts the client agent in the game the same way (VERIFIED).
 - **Client ops.** The plugin's play-server instance answers world ops itself and forwards camera / input / GUI ops to
-  the client agent through a `RemoteFunction` (`ReplicatedStorage.AutopilotAgentRemote`). The edit plugin inserts the
-  agent `LocalScript` into `StarterPlayer.StarterPlayerScripts` and the remote into `ReplicatedStorage` just before it
-  starts the play test (so they are copied into the play DataModels as ordinary objects) and removes them when the
-  test ends. They are tagged `AutopilotTemporary`; if Studio crashes mid-run, delete them by hand before saving
-  (the plugin also removes stale ones when it loads).
+  the client agent through a `RemoteFunction` (`ReplicatedStorage.AutopilotAgentRemote`). Both are made at runtime in
+  the play test's DataModels: the remotes in `ReplicatedStorage`, the agent `LocalScript` (with the modules it needs)
+  in a `ResetOnSpawn = false` ScreenGui named `AutopilotClientAgent` in each player's `PlayerGui`. The edit DataModel
+  (the place you save) is never changed (VERIFIED after runs: nothing tagged `AutopilotTemporary`, nothing added).
+  Earlier versions of the plugin put them in the edit place; the plugin still removes such leftovers when it loads.
+- **The link's budget.** One request per question: when a poll brings requests, the next poll waits up to 0.25 s for
+  their answers and carries them, then waits at the bridge (up to 2 s) for the next request. An answer that takes
+  longer (a `move` of several seconds, a client op still running) goes in a request of its own; events (heartbeats,
+  logs) ride the next poll, so they are at most 2 s late. Requests come from a token bucket, 7 a second on average.
+
+### Pictures and real input: Roblox Studio's MCP server
+
+Roblox Studio ships an MCP server, `StudioMCP` (`/Applications/RobloxStudio.app/Contents/MacOS/StudioMCP` on macOS,
+`%LOCALAPPDATA%\Roblox\Versions\<version>\StudioMCP.exe` on Windows: UNVERIFIED there), which Studio's own AI
+assistant tools use. It runs as a stdio JSON-RPC process that talks to the open Studio, and it can do what a plugin
+can't. The bridge (`autopilot/studio_mcp.py`) starts one when it first needs it and keeps it:
+
+- `screen_capture`: the game viewport as a JPEG (1292x648 here), in 0.3 s, also while Studio is behind other windows
+  and with the picture live during Play. `capture` answers with it; `record` takes one every 1/fps s (at most 4 a
+  second) and feeds them to the run as `frame`s, so runs get videos (`media/recording-N.mp4`) and the agent's frame
+  describer gets pictures. The hello then says `media`.
+- `user_keyboard_input` and `user_mouse_input` (`datamodel_type: Client`): real key and mouse events in the play
+  client. ContextActionService bindings, UserInputService handlers, ProximityPrompts' own keys, the backpack's number
+  keys and GUI buttons all see them.
+- It only acts on the Studio instance whose place is the plugin's (`hello.project`, the place's name, or
+  `<name>.rbxl`): never on another place that happens to be open.
+
+`AUTOPILOT_ROBLOX_STUDIO_MCP` names the executable (`0` turns it off). `AUTOPILOT_ROBLOX_SCREENSHOT` picks the
+pictures: `studio` (the default), `screen` (a screenshot of the whole screen: macOS `screencapture`, Windows
+PowerShell; it shows whatever is in front) or `0` (none: `capture` answers 409). `AUTOPILOT_ROBLOX_REAL_INPUT=0`
+keeps all input semantic (and GUI clicks answer 501).
 
 ## 5. In scope / out of scope
 
-In scope (implemented, UNVERIFIED against Studio): the HTTP bridge and session routing; play start/stop/restart; the
-engine-neutral ops (`find`, `transforms`, `pose`, `movement`); `context`, `ping`, `rc` (property / attributes /
-call / describe / probe), `screen`, `ui`, `ui_act` (`set` only), `view` (basic), `watch` (moved, turned, changed
-size, part shown/hidden, gone), `key`, `input`, `move`, `detectors` (accepted, no thresholds), heartbeats, `log`
-events and `log_error` findings (server and client); `codex_manifest` / `codex_read` (every script's text and a
-summary of the place); a minimal dock (prompt box, Start, Stop, Steer, status line, result, address and token);
+In scope (VERIFIED live unless marked): the HTTP bridge and session routing; play start/stop/restart; the
+engine-neutral ops (`find`, `transforms`, `pose`, `movement`); `context`, `ping`, `rc` (property read and write /
+attributes / call / describe; `probe` UNVERIFIED), `screen`, `ui`, `ui_act` (`set` UNVERIFIED, `click` through
+Studio's MCP server), `view`, `watch` (answers; its change detection UNVERIFIED), `key`, `input`, `move`, `detectors`
+(accepted, no thresholds), heartbeats, `log` events and `log_error` findings (server and client, start-up errors
+included); `codex_manifest` / `codex_read`; `capture` and `record` through Studio's MCP server; the dock (prompt box,
+Start, Stop, Steer, status line, result: Start / Steer from the dock UNVERIFIED, runs were started from Claude Code);
 `autopilot roblox install|build|status|uninstall`; the codex from disk for a Rojo project or a `.rbxlx` place file
-(`autopilot codex --project`).
+(`autopilot codex --project`, UNVERIFIED live).
 
-Stubbed or answered "not possible": `capture` (409 unless `AUTOPILOT_ROBLOX_SCREENSHOT=1`, then a host-side
-screenshot of the whole screen), `record` (409), `ui_act` clicks (501), `pause` and `timestep` (accepted, do nothing),
-`session restart` with another `map` (400).
+Answered "not possible": `pause` and `timestep` (accepted, do nothing), `session restart` with another `map` (400),
+`ui_act` clicks and real keys without Studio's MCP server (501 / semantic only).
 
-Out of scope for now: recording, GUI clicks, Team Test / multiple clients, `levels`, Aura sign-in and the first-run
-setup UI the other plugins have, the run history and policy log tabs, `sonar` and the richer `view` fields (listed in
-`omitted`), the `out_of_world` / `long_fall` / `hitch` detectors, a headless launch for the bench (Studio has no
-headless play mode a plugin can drive), a release download (`tools/package_release.py` doesn't package Roblox).
+Out of scope for now: Team Test / multiple clients, `levels`, Aura sign-in and the first-run setup UI the other
+plugins have (so the plugin says `share: false`: Roblox runs are never shared), the run history and policy log tabs,
+`sonar` and the richer `view` fields (listed in `omitted`), the `out_of_world` / `long_fall` / `hitch` detectors, a
+headless launch for the bench, a release download (`tools/package_release.py` doesn't package Roblox), the Roblox
+Player (section 9).
 
 ## 6. Install
 
@@ -183,12 +217,10 @@ other engines.
    address. Without the CLI: `python plugin/roblox/build_plugin.py --out <Plugins>/Autopilot.server.lua` (no token:
    enter it in the dock, see below). With Rojo: `rojo build plugin/roblox/default.project.json -o
    <Plugins>/Autopilot.rbxm` (no token either). `autopilot roblox uninstall` removes the plugin file.
-2. **Restart Studio** (or reload plugins) and open your place. An **Autopilot** button appears in the Plugins tab.
-3. **Allow HTTP.** The first time the plugin calls the bridge, Studio asks whether Autopilot may make HTTP requests to
-   `127.0.0.1`: allow it (Plugins > Manage Plugins > Autopilot > permissions, if you missed it). Also turn on
-   **Game Settings > Security > Allow HTTP Requests** for the place: the play-server half of the plugin may need it
-   (UNVERIFIED). Turning it on is a setting of the place: turn it off again before you publish if your game doesn't
-   use HTTP itself.
+2. **Restart Studio** (it doesn't load a new or changed plugin file while it runs) and open your place. An **Autopilot** button appears in the Plugins tab.
+3. **HTTP needs nothing.** A plugin installed this way reached `127.0.0.1` without a permission prompt, with the
+   place's **Allow HTTP Requests** off (VERIFIED on macOS). Should Studio ever ask whether Autopilot may make HTTP
+   requests to `127.0.0.1`, allow that (Plugins > Manage Plugins > Autopilot > permissions, if you missed it).
 4. **Start the agent service:** `autopilot serve`. It listens for Unreal/Unity/Godot on `ws://127.0.0.1:8765` and for
    Roblox on `http://127.0.0.1:8766` (`AUTOPILOT_ROBLOX_PORT`; `0` turns the Roblox bridge off). `autopilot roblox
    status` checks Studio, the installed plugin, its token and the bridge.
@@ -197,9 +229,10 @@ other engines.
    **Token** field and press **Save**.
 
 Environment variables: `AUTOPILOT_ROBLOX_PORT` (bridge port, default 8766, 0 = off), `AUTOPILOT_ROBLOX_TOKEN` (use
-this token instead of the one kept in `Autopilot/roblox_token`), `AUTOPILOT_ROBLOX_SCREENSHOT=1` (host-side
-screenshots for `capture`), `AUTOPILOT_ROBLOX_PLUGINS` (the Plugins folder), `AUTOPILOT_ROBLOX_STUDIO` (where Studio
-is, for `status`).
+this token instead of the one kept in `Autopilot/roblox_token`), `AUTOPILOT_ROBLOX_SCREENSHOT` (`studio`, the
+default; `screen`; `0`), `AUTOPILOT_ROBLOX_STUDIO_MCP` (Studio's MCP server executable; `0` = don't use it),
+`AUTOPILOT_ROBLOX_REAL_INPUT` (`0` = semantic input only), `AUTOPILOT_ROBLOX_PLUGINS` (the Plugins folder),
+`AUTOPILOT_ROBLOX_STUDIO` (where Studio is, for `status`).
 
 ## 7. Use
 
@@ -216,32 +249,63 @@ From the command line: `autopilot play "Verify that ..."` waits for the dock to 
 own Claude Code or Codex: `autopilot connect claude` (or `codex`), keep `autopilot serve` running with Studio open and
 the dock connected, then ask your agent to "Use Autopilot to verify that ...".
 
-## 8. Known limits and verification status
+## 8. Verification status and known limits
 
-What was checked, offline only:
+Checked live on macOS 27, Roblox Studio 0.745.0.7451137, in a NEW unsaved Baseplate with the test game of
+`tools/roblox_test_place.luau` (5 coins and leaderstats, a door that opens at 5 coins, a goal pad, a lever with a
+ProximityPrompt, an F-key ContextActionService action, a Shop button, and two planted bugs). Details, commands and
+outputs: [roblox-live-test-log.md](roblox-live-test-log.md).
 
-| Check | Result |
-|---|---|
-| `tests/test_roblox.py`: engine registration, project discovery, codex rules, `.rbxlx` scripts, kit frame, the kit section in the prompt, plugins folder and Studio detection, token, install / build / status / uninstall, the single-file build, session routing, host capture, channel timeouts, and a **fake plugin in Python driving the real HTTP bridge end to end** (hello, edit and server channels, requests, posts, events, start frames, restart orchestration, bye) | passing |
-| The Luau: `stylua --check` (formatting and parse), `selene` (Roblox std) on `src/` and on the built single file, `rojo build` | clean |
-| The plugin in Roblox Studio | **not run** (UNVERIFIED) |
+| Check | Result | Evidence |
+|---|---|---|
+| Install, Autopilot toolbar button and dock, handshake | VERIFIED (after a Studio restart) | [01](roblox-live-evidence/01-toolbar-button.png), [02](roblox-live-evidence/02-dock-connected.png) |
+| Play start / stop / restart from Autopilot; Studio's own Play joins | VERIFIED | [03](roblox-live-evidence/03-play-started-by-autopilot.png), log rounds 1-2 |
+| State: `context`, `pose`, `find`, `movement`, `rc`, `view`, `screen`, `ui`, codex (the place's scripts) | VERIFIED | log rounds 1-2 |
+| Acting: `move`, held keys, jump, camera, ProximityPrompt, real keys, CAS action by its key, GUI click | VERIFIED | log round 2 |
+| Pictures: `capture` and `record` (videos of each episode) through Studio's MCP server | VERIFIED | [04](roblox-live-evidence/04-capture-during-play.jpg), [05](roblox-live-evidence/05-e2e-verify-recording-frame.jpg) |
+| Logs and `log_error` findings, server and client, start-up errors | VERIFIED | log rounds 1-3 |
+| Latency within Studio's HttpService budget | 17 ms server / 67 ms client answers, 7 a second sustained, no refusals | log round 3 |
+| The edit place untouched by runs | VERIFIED | log round 2 |
+| The four prompt kinds through `autopilot serve` + Claude Code (Autopilot's MCP server, skill and describer) | see the log, round 4 | [e2e-*](roblox-live-evidence/) |
+| `tests/test_roblox.py`, the full suite, `stylua`, `selene`, `rojo build` | passing / clean | |
+| Windows, Team Test, a published place, Rojo-synced places | UNVERIFIED | |
+
+**The decision model.** A run's episodes are played by Jev, TypeSafe's hosted decision model, reached with
+`TYPESAFE_API_KEY` or through Aura. Neither was available for these checks, so the e2e runs used a local stand-in
+(`AUTOPILOT_JEV_STANDIN=random`, `runtime.StandInJev`) that picks one of the options the harness offers at random and
+never reads the state. Everything else was real: the user's Claude Code wrote and ran the harnesses through
+Autopilot's MCP server, the game was played live, and the reports came from what happened in play. What the stand-in
+can't show is how well Jev itself plays a Roblox game. `autopilot connect claude` itself wasn't run (it writes the
+user-wide Claude Code config of a machine shared by other agents); the runs loaded the same files it installs
+(`python -m autopilot.connect plugin <folder>`, which the tests compare with what `connect` writes) with
+`claude --plugin-dir`.
 
 Limits:
 
-- **Nothing here has been run in Roblox Studio.** Every Studio behaviour this design leans on is UNVERIFIED:
-  plugins running in the play server, `StudioTestService` arguments reaching it, `HttpService` from the play server to
-  localhost, setting a new `LocalScript`'s `Source` from a plugin and it running in the play client,
-  `ContextActionService:CallFunction` with no input object, `ProximityPrompt:InputHoldBegin` from a LocalScript, and
-  the camera turning when its `CFrame` is set before the default camera script runs.
-- Input is semantic, not real key events (see section 2). Games that read `UserInputService` directly for a key won't
-  react to that key; movement through the default `PlayerModule` and `ContextActionService` bindings should.
-- GUI clicks are not possible; `ui_act click` answers 501.
-- No pictures unless `AUTOPILOT_ROBLOX_SCREENSHOT=1` (then the whole screen is captured, whatever is in front: macOS
-  needs Screen Recording permission for the terminal that runs `autopilot serve`). No recording.
-- `pause` and `timestep` do nothing.
-- One player, Play mode (not Run, not Team Test).
-- The client agent and its remotes are put in the place for the duration of a run (tagged `AutopilotTemporary`,
-  removed when the test ends and when the plugin loads): saving the place mid-run saves them too, and Studio's undo
-  history shows them come and go.
-- The plugin polls at most 8 requests a second; each key press, answer and event batch rides on those, so a busy run
-  adds up to ~125 ms of latency per round trip.
+- Input is semantic for movement and the camera; other keys and GUI clicks need Studio's MCP server (on by default
+  where Studio ships it). A game that reads raw `UserInputService` for **movement** keys won't see the agent walk.
+- Studio's HttpService budget caps the link at about 7 questions a second, sustained (bursts are faster).
+- `pause` and `timestep` do nothing; one player, Play mode (not Run, not Team Test).
+- Studio's MCP server acts on the Studio whose place has the plugin's place name: with two open places of the same
+  name, the first one listed.
+- The dock's result box is small: the verdict shows, the summary needs scrolling (or read it in your agent).
+
+## 9. The Roblox Player (not Studio)
+
+Assessed, not built. Plugins run only in Studio; the Roblox Player runs none of this. What a Player version would
+need, and why none of it is trivial:
+
+- **No way in from the game.** A live game server can't reach the player's computer (`HttpService` calls go out from
+  Roblox's servers, never to the player's `localhost`), and a client script can't make HTTP requests at all. So the
+  game's state could only be read through something the developer builds into the game itself (e.g. a debug
+  `RemoteFunction` and an in-game panel), not by an add-on.
+- **Input and pictures from the operating system only.** Real key and mouse events to the Player window (macOS
+  `CGEvent` / System Events with Accessibility permission; Windows `SendInput`), and screenshots of its window. The
+  agent would play from pictures alone: no `pose`, `find`, `rc`, codex or logs. That is a different, vision-only
+  product shape.
+- **The place running in the Player is a published one** (or a Team Test server), so testing there means publishing
+  first; Studio's play test needs neither.
+
+Recommendation: keep Studio as the target (its play test is the same engine and the same client code). For a check in
+the real client, a developer-built debug channel plus OS-level input and window capture would be the way; it should
+be designed separately.

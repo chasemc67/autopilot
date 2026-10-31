@@ -246,6 +246,8 @@ function PlayServer.start(plugin: Plugin)
 		end,
 	})
 	link:start()
+	-- (first: the brain starts a new play test's backlog with it, then the game's start-up log lines go into it)
+	emit({ kind = "session", t = t(), running = true })
 
 	local function onMessage(message: string, kind: Enum.MessageType)
 		if kind == Enum.MessageType.MessageError then
@@ -272,7 +274,6 @@ function PlayServer.start(plugin: Plugin)
 		end)
 	end
 
-	emit({ kind = "session", t = t(), running = true })
 	local frames, elapsed = 0, 0
 	RunService.Heartbeat:Connect(function(dt)
 		frames += 1
