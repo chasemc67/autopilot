@@ -64,12 +64,52 @@ def load_harness(path):
     return classes[-1]()
 
 
+STANDIN_ENV = "AUTOPILOT_JEV_STANDIN"
+
+
+class StandInJev:
+    """A local stand-in for Jev, for checking the plumbing where there is no TypeSafe key (AUTOPILOT_JEV_STANDIN=random
+    or first). It is NOT a decision model: it never reads the state, and picks an option at random (or always the
+    first one offered). Nothing leaves the machine. Never used unless that variable is set; a run that used it says so
+    in its decisions (model "local-stand-in")."""
+
+    model = "local-stand-in"
+
+    def __init__(self, policy="random", seed=None):
+        import random
+
+        self.policy = policy if policy in ("random", "first") else "random"
+        self.random = random.Random(seed)
+
+    def system_one(self, state=None, questions=None):
+        from types import SimpleNamespace
+
+        choices = {}
+        for name, q in (questions or {}).items():
+            names = list(getattr(q, "criteria", None) or {})
+            if not names:
+                continue
+            pick = names[0] if self.policy == "first" else self.random.choice(names)
+            probs = {n: (1.0 if n == pick else 0.0) for n in names}
+            choices[name] = SimpleNamespace(choice=pick, probabilities=probs, confidence=None)
+        raw = {"model": self.model, "policy": self.policy, "choices": {k: c.choice for k, c in choices.items()}}
+        return SimpleNamespace(choices=choices, nouls={}, scores={}, raw=raw, model=self.model, usage=None)
+
+
+def standin():
+    """The stand-in's policy when AUTOPILOT_JEV_STANDIN asks for one, else None."""
+    value = (os.environ.get(STANDIN_ENV) or "").strip().lower()
+    return value if value in ("random", "first") else None
+
+
 def jev_client(warm=True):
-    """Jev's client. Its connection is kept open across idle stretches (the agent thinking between episodes, a long
+    """Jev's client (the local stand-in instead, with AUTOPILOT_JEV_STANDIN set: StandInJev). Its connection is kept open across idle stretches (the agent thinking between episodes, a long
     option), and while warm, a light call (the model list) is made at once and whenever Jev has been idle for
     WARM_EVERY: a decision made after an idle stretch, a dodge, never waits on a new connection or a server waking.
     Bodies go uncompressed: the SDK zstd-compresses them wherever zstd is importable (Python 3.14+), and Aura's relay
     doesn't pass Content-Encoding on to TypeSafe."""
+    if standin():
+        return StandInJev(standin())
     import httpx2
     from dotenv import load_dotenv
     from typesafe_sdk import TypeSafeClient

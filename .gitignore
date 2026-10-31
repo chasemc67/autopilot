@@ -39,3 +39,6 @@ Thumbs.db
 
 # Bench results
 bench/results/
+
+# Live-test scratch (tools/roblox_e2e.sh): the e2e runs' Claude Code plugin folder, memory and runs
+.e2e/

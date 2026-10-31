@@ -882,7 +882,7 @@ def cmd_run(link, args):
 def decision_key_missing():
     """Why a run with the user's own keys can't start (its decision model has no key; a run through Aura needs none),
     or None. Told to the user's own agent (`autopilot mcp`): the key goes in the file, never into its conversation."""
-    if aura.enabled() or (os.environ.get("TYPESAFE_API_KEY") or "").strip():
+    if aura.enabled() or (os.environ.get("TYPESAFE_API_KEY") or "").strip() or runtime.standin():
         return None
     return ("Autopilot needs a key for its decision model, the one that plays the game (TypeSafe: "
             f"https://typesafe.ai). Add the line TYPESAFE_API_KEY=<the key> to {account._user_env_path()}, or enter it "

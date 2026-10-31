@@ -53,6 +53,9 @@ function EditHost.start(plugin: Plugin)
 			project = game.Name,
 			host = "editor",
 			features = Json.array({ "timed_hold" }),
+			-- (the other engines' plugins ask in a first-run setup whether runs may be shared; this one has no such
+			-- setup yet, so its runs aren't shared)
+			share = false,
 		}
 		if game.PlaceId ~= 0 then
 			h.project_id = tostring(game.PlaceId)

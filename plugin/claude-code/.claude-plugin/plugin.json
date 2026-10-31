@@ -1,7 +1,7 @@
 {
   "name": "autopilot",
   "version": "0.1.0",
-  "description": "Playtest the game open in your Unreal, Unity or Godot editor with Autopilot, on your own Claude plan.",
+  "description": "Playtest the game open in your Unreal, Unity, Godot or Roblox Studio editor with Autopilot, on your own Claude plan.",
   "author": {
     "name": "Ramen VR"
   },
