@@ -38,9 +38,7 @@ function EditHost.start(plugin: Plugin)
 	end
 
 	local function engineVersion(): string
-		local ok, v = pcall(function()
-			return game:GetService("RunService"):GetRobloxVersion()
-		end)
+		local ok, v = pcall(version)
 		return ok and tostring(v) or ""
 	end
 
@@ -73,6 +71,12 @@ function EditHost.start(plugin: Plugin)
 	end
 
 	local function startTest(args: { [string]: any }): (boolean, any, number?)
+		-- (the bridge asks for a start once the last test's server has gone: ExecutePlayModeAsync may take a moment
+		-- longer to return here, a restart's start must wait for it, not answer "running")
+		local deadline = os.clock() + 20
+		while testRunning and os.clock() < deadline do
+			task.wait(0.1)
+		end
 		if testRunning then
 			return true, { running = true, loading = true }
 		end
