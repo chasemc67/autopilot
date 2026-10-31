@@ -63,7 +63,7 @@ end
 Input.start()
 
 if events then
-	LogService.MessageOut:Connect(function(message: string, kind: Enum.MessageType)
+	local function onMessage(message: string, kind: Enum.MessageType)
 		if string.sub(message, 1, 10) == "Autopilot:" then
 			return
 		end
@@ -72,6 +72,13 @@ if events then
 		elseif kind == Enum.MessageType.MessageWarning then
 			events:FireServer("log", "Warning", message)
 		end
+	end
+	-- (what the client said before the agent was put in the game, then what it says from now on)
+	pcall(function()
+		for _, entry in LogService:GetLogHistory() do
+			onMessage(entry.message, entry.messageType)
+		end
 	end)
+	LogService.MessageOut:Connect(onMessage)
 	events:FireServer("ready")
 end

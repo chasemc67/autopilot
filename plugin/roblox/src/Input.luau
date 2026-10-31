@@ -14,6 +14,7 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Frame = require(script.Parent.Frame)
+local Json = require(script.Parent.Json)
 local World = require(script.Parent.World)
 
 local Input = {}
@@ -94,6 +95,22 @@ local function casActions(key: string?, action: string?): { string }
 					table.insert(out, name)
 					break
 				end
+			end
+		end
+	end
+	return out
+end
+
+-- The keyboard keys (Roblox KeyCode names) a ContextActionService action is bound to.
+local function actionKeys(action: string): { string }
+	local out = {}
+	local ok, info = pcall(function()
+		return ContextActionService:GetBoundActionInfo(action)
+	end)
+	if ok and type(info) == "table" and type(info.inputTypes) == "table" then
+		for _, t in info.inputTypes do
+			if typeof(t) == "EnumItem" and (t :: EnumItem).EnumType == Enum.KeyCode then
+				table.insert(out, (t :: EnumItem).Name)
 			end
 		end
 	end
@@ -338,6 +355,23 @@ function Input.input(args: { [string]: any }): (boolean, any)
 	local ps = #names == 0 and prompts(nil, action) or {}
 	if #names == 0 and #ps == 0 then
 		return false, "No input action named " .. action
+	end
+	if #names > 0 then
+		-- (a script can't call a ContextActionService action's function: CallFunction is Roblox's own. The bridge
+		-- presses the action's key for real, through Roblox Studio's MCP server)
+		local keys = Json.array()
+		for _, k in actionKeys(names[1]) do
+			table.insert(keys, k)
+		end
+		if args.host_input == true and #keys > 0 then
+			return true, { host_keys = keys }
+		end
+		return false,
+			string.format(
+				"%s is a ContextActionService action: a script can't call it, press its key instead (%s)",
+				action,
+				#keys > 0 and table.concat(keys, ", ") or "no keyboard key"
+			)
 	end
 	local function set(down: boolean)
 		for _, n in names do

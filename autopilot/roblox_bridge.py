@@ -60,7 +60,23 @@ CLIENT_OPS = {"pose", "screen", "ui", "ui_act", "key", "input", "move", "view"}
 # Requests the brain answers itself: the picture (a plugin can't read the screen)
 HOST_OPS = {"capture", "record"}
 NO_GAME = "No game is running"
+# Where pictures come from: "studio" (default: Roblox Studio's own MCP server's screen_capture, the game viewport),
+# "screen" or "1" (a screenshot of the whole screen), "0" / "off" (none)
 SCREENSHOT_ENV = "AUTOPILOT_ROBLOX_SCREENSHOT"
+# "0": no real input through StudioMCP (keys are only what the client agent can do semantically, no GUI clicks)
+REAL_INPUT_ENV = "AUTOPILOT_ROBLOX_REAL_INPUT"
+# Keys the client agent presses itself, semantically (Humanoid:Move, Jump, the camera, the equipped Tool): precise and
+# timed in the game's own frames. Every other key is a real key event through StudioMCP when it's there.
+SEMANTIC_KEYS = {"W", "A", "S", "D", "Up", "Down", "Left", "Right", "SpaceBar", "MouseX", "MouseY",
+                 "LeftMouseButton", "RightMouseButton", "MiddleMouseButton"}
+# Unreal key names that aren't Roblox KeyCode names (StudioMCP takes KeyCode names)
+KEYCODES = {"SpaceBar": "Space", "Enter": "Return", "BackSpace": "Backspace", "LeftCommand": "LeftMeta",
+            "RightCommand": "RightMeta", "NumPadZero": "KeypadZero", "NumPadOne": "KeypadOne",
+            "NumPadTwo": "KeypadTwo", "NumPadThree": "KeypadThree", "NumPadFour": "KeypadFour",
+            "NumPadFive": "KeypadFive", "NumPadSix": "KeypadSix", "NumPadSeven": "KeypadSeven",
+            "NumPadEight": "KeypadEight", "NumPadNine": "KeypadNine"}
+KEY_TAP_MS = 60  # a real key press: down, this long, up
+MAX_RECORD_FPS = 4.0  # a StudioMCP picture takes ~0.3 s
 
 
 def port():
@@ -130,13 +146,21 @@ WINDOWS_SHOT = (
 )
 
 
+def picture_mode(studio_available, env=None):
+    """Where a session's pictures come from: "studio" (StudioMCP's screen_capture), "screen" (the whole screen) or
+    None (no pictures), from AUTOPILOT_ROBLOX_SCREENSHOT (default: "studio" where StudioMCP is)."""
+    value = ((os.environ if env is None else env).get(SCREENSHOT_ENV) or "").strip().lower()
+    if value in ("0", "off", "no", "none"):
+        return None
+    if value in ("1", "screen"):
+        return "screen"
+    return "studio" if studio_available else None
+
+
 def screenshot(max_dim=1920, run=subprocess.run):
-    """A screenshot of this computer's screen as a capture answer ({"jpeg": base64, "width", "height", "source"}), for
-    a plugin that can't read its own picture. Only with AUTOPILOT_ROBLOX_SCREENSHOT=1 (it takes the whole screen):
-    else, or where it can't, a BridgeError 409 "no picture: ...". run: subprocess.run (the tests' stand-in)."""
-    if os.environ.get(SCREENSHOT_ENV, "").strip() != "1":
-        raise bridge.BridgeError(409, "no picture: a Roblox plugin can't read the screen; set "
-                                      f"{SCREENSHOT_ENV}=1 for the agent service to take screenshots of this computer")
+    """A screenshot of this computer's whole screen as a capture answer ({"jpeg": base64, "width", "height",
+    "source"}), with AUTOPILOT_ROBLOX_SCREENSHOT=screen; where it can't, a BridgeError 409 "no picture: ...".
+    run: subprocess.run (the tests' stand-in)."""
     folder = tempfile.mkdtemp(prefix="autopilot-shot-")
     path = os.path.join(folder, "shot.jpg")
     try:
@@ -162,6 +186,14 @@ def screenshot(max_dim=1920, run=subprocess.run):
             "source": "host screenshot"}
 
 
+def tonumber(value):
+    """value as a float, or None."""
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
 # -- a session ----------------------------------------------------------------------------------------------------
 
 class Channel:
@@ -178,17 +210,28 @@ class Channel:
 class Session:
     """One plugin session: its bridge.Link, and its channels. The link's send() routes each frame to a channel."""
 
-    def __init__(self, hello, screenshots=None, shoot=None):
+    def __init__(self, hello, screenshots=None, shoot=None, studio=None):
         self.id = f"roblox-{uuid.uuid4().hex[:12]}"
         self.cond = threading.Condition()
         self.channels = {"edit": Channel("edit")}
         self._internal = {}  # id -> [threading.Event, response frame]: requests the bridge itself sent
         self._ids = itertools.count(1)
         self.closed = False
-        self.screenshots = (os.environ.get(SCREENSHOT_ENV, "").strip() == "1") if screenshots is None else screenshots
+        # StudioMCP (autopilot/studio_mcp.py): the pictures and the real input a plugin can't make
+        self.studio = studio if studio is not None and getattr(studio, "available", False) else None
+        if screenshots is not None:  # (the tests' choice: the whole screen or nothing)
+            self.pictures = "screen" if screenshots else None
+        else:
+            self.pictures = picture_mode(self.studio is not None)
+        self.screenshots = self.pictures is not None
+        self.real_input = self.studio is not None and os.environ.get(REAL_INPUT_ENV, "").strip() != "0"
         self.shoot = shoot or screenshot
+        self.held = {}  # real keys held down (StudioMCP): key -> its KeyCode name, when it's let go (monotonic)
+        self.lease = 1.0
+        self._ticker = None
+        self._recorder = None  # (thread, stop event, counts) while recording
         hello = dict(hello)
-        if self.screenshots:  # (the brain takes stills itself: the plugin can't)
+        if self.pictures:  # (the brain takes stills itself: the plugin can't)
             hello["features"] = sorted(set(hello.get("features") or []) | {"media"})
         self.link = bridge.Link(self._send)
         self.link.session = self.id
@@ -226,6 +269,8 @@ class Session:
             if action == "stop":
                 return play or "edit"
             return "edit"
+        if play and self.real_input and self._real(op, args):
+            return "host"
         if play:
             return play
         if op in ("context", "ping", "detectors", "pause", "timestep"):
@@ -303,20 +348,216 @@ class Session:
         rid, op, args = frame.get("id"), frame.get("op"), frame.get("args") or {}
         try:
             if op == "capture":
-                self._answer(rid, self.shoot(int(args.get("max_dim") or 1920)))
+                self._answer(rid, self.picture(int(args.get("max_dim") or 1920)))
             elif op == "record":
-                if args.get("action") == "stop":
-                    self._answer(rid, {"recording": False, "frames": 0})
-                else:
-                    self._answer(rid, error="no picture: a Roblox plugin can't record the game", status=409)
+                self._answer(rid, self._record(args))
             elif op == "session":
                 self._answer(rid, self._session(args))
+            elif op == "key":
+                self._answer(rid, self._key(args))
+            elif op == "ui_act":
+                self._answer(rid, self._ui_act(args))
+            elif op == "input":
+                self._answer(rid, self._input(args))
             else:
                 self._answer(rid, error=f"unknown op {op}")
         except bridge.BridgeError as e:
             self._answer(rid, error=e.error, status=e.status)
         except Exception as e:  # noqa: BLE001 - the brain gets the error as an answer
             self._answer(rid, error=f"{type(e).__name__}: {e}", status=500)
+
+    # -- pictures: StudioMCP's screen_capture (or the whole screen) --------------------------------------------
+
+    def project(self):
+        return str((self.link.hello or {}).get("project") or "")
+
+    def picture(self, max_dim=1920):
+        """A capture answer: {"jpeg": base64, "width", "height", "source"}; BridgeError 409 when there's none."""
+        if self.pictures == "screen":
+            return self.shoot(max_dim)
+        if self.pictures != "studio":
+            raise bridge.BridgeError(409, "no picture: a Roblox plugin can't read the screen, and Roblox Studio's MCP "
+                                          f"server (StudioMCP) isn't in use ({SCREENSHOT_ENV}=screen takes "
+                                          "screenshots of the whole screen instead)")
+        from .studio_mcp import StudioMCPError
+
+        try:
+            data = self.studio.capture(self.project())
+        except StudioMCPError as e:
+            raise bridge.BridgeError(409, f"no picture: {e}") from None
+        width, height = jpeg_size(data)
+        return {"jpeg": base64.b64encode(data).decode("ascii"), "width": width, "height": height,
+                "source": "Roblox Studio (StudioMCP screen_capture)"}
+
+    def _record(self, args):
+        """`record`: a stream of `frame`s made here, a picture every 1/fps s (at most MAX_RECORD_FPS)."""
+        self._stop_recording()
+        if args.get("action") == "stop":
+            return {"recording": False}
+        if not self.pictures:
+            raise bridge.BridgeError(409, "no picture: nothing here can take the game's picture, so it can't be "
+                                          "recorded")
+        self.picture(int(args.get("max_dim") or 1920))  # (fails now, not in the recorder, when there's no picture)
+        fps = max(0.5, min(float(args.get("fps") or 2), MAX_RECORD_FPS))
+        stop = threading.Event()
+        thread = threading.Thread(target=self._recording, args=(stop, fps, int(args.get("max_dim") or 1920)),
+                                  daemon=True, name="roblox-record")
+        self._recorder = (thread, stop)
+        thread.start()
+        return {"recording": True, "fps": fps, "source": "host"}
+
+    def _stop_recording(self):
+        recorder, self._recorder = self._recorder, None
+        if recorder is not None:
+            recorder[1].set()
+
+    def _recording(self, stop, fps, max_dim):
+        n, misses = 0, 0
+        while not stop.is_set() and not self.closed:
+            started = time.monotonic()
+            try:
+                shot = self.picture(max_dim)
+                misses = 0
+            except Exception:  # noqa: BLE001 - a missed frame (Studio busy): the next one is tried
+                misses += 1
+                stop.wait(min(5.0, misses / fps))
+                continue
+            n += 1
+            game_time = getattr(self.link, "game_time", None)
+            at = getattr(self.link, "game_time_at", None)
+            t = round(game_time + (time.time() - at), 2) if isinstance(game_time, (int, float)) and at else None
+            self.link.feed({"type": "frame", "n": n, "t": t, "wall": time.time(), **shot})
+            stop.wait(max(0.0, 1.0 / fps - (time.monotonic() - started)))
+
+    # -- real input: StudioMCP's keyboard and mouse --------------------------------------------------------------
+
+    def _real(self, op, args):
+        """Whether a request is answered here with real input (else the play test's plugin answers it)."""
+        if op in ("ui_act", "input"):
+            return True
+        if op == "key":
+            mode = str(args.get("mode") or "press")
+            key = str(args.get("key") or "")
+            return mode == "release_all" or (key != "" and key not in SEMANTIC_KEYS)
+        return False
+
+    def _play_call(self, op, args, timeout=30.0):
+        where = self.play(op)
+        if where is None:
+            raise bridge.BridgeError(409, f"{NO_GAME} (press Start in the Autopilot dock, or Play)")
+        return self.call(where, op, args, timeout=timeout)
+
+    def _keys(self, actions):
+        self.studio.keys(self.project(), actions)
+
+    def _key(self, args):
+        """`key` with a real key event (StudioMCP), for the keys the client agent can't press for real: anything bound
+        through ContextActionService or read from UserInputService, ProximityPrompts, the backpack's hotkeys. A key
+        StudioMCP doesn't take goes to the client agent, which does what it can."""
+        from .studio_mcp import StudioMCPError
+
+        mode = str(args.get("mode") or "press")
+        if mode == "release_all":
+            self._release(list(self.held))
+            return self._play_call("key", args)
+        key = str(args.get("key") or "")
+        code = KEYCODES.get(key, key)
+        if tonumber(args.get("lease")):
+            self.lease = min(10.0, max(0.2, float(args["lease"])))
+        try:
+            if mode == "release":
+                self._release([key])
+            elif mode == "hold":
+                seconds = tonumber(args.get("seconds")) or 0
+                with self.cond:
+                    down = key in self.held
+                    self.held[key] = (code, time.monotonic() + (seconds if seconds > 0 else self.lease))
+                if not down:
+                    self._keys([{"action": "keyDown", "key_code": code}])
+                self._tick()
+            else:
+                self._keys([{"action": "keyDown", "key_code": code}, {"action": "wait", "wait_time_ms": KEY_TAP_MS},
+                            {"action": "keyUp", "key_code": code}])
+                return {"did": f"real key {code}"}
+        except StudioMCPError as e:
+            with self.cond:
+                self.held.pop(key, None)
+            answer = self._play_call("key", args)
+            return {**(answer or {}), "note": f"no real key ({e}): {(answer or {}).get('note') or 'done in the game'}"}
+        return {}
+
+    def _release(self, keys):
+        from .studio_mcp import StudioMCPError
+
+        with self.cond:
+            codes = [self.held.pop(k)[0] for k in keys if k in self.held]
+        for code in codes:
+            try:
+                self._keys([{"action": "keyUp", "key_code": code}])
+            except StudioMCPError:
+                pass
+
+    def _tick(self):
+        """Let go of the real keys whose hold ran out (a lease not renewed, or a timed hold's seconds)."""
+        if self._ticker is not None and self._ticker.is_alive():
+            return
+
+        def run():
+            while not self.closed:
+                with self.cond:
+                    if not self.held:
+                        self._ticker = None
+                        return
+                    now = time.monotonic()
+                    done = [k for k, (_, until) in self.held.items() if until <= now]
+                if done:
+                    self._release(done)
+                time.sleep(0.05)
+
+        self._ticker = threading.Thread(target=run, daemon=True, name="roblox-keys")
+        self._ticker.start()
+
+    def _ui_act(self, args):
+        """`ui_act`: a click is a real mouse click (StudioMCP) on the element the client agent names; the rest is the
+        client agent's."""
+        from .studio_mcp import StudioMCPError
+
+        if str(args.get("action") or "click") != "click":
+            return self._play_call("ui_act", args)
+        found = self._play_call("ui_act", {**args, "host_input": True}) or {}
+        path = found.get("click_path")
+        if not path:
+            return found
+        try:
+            self.studio.mouse(self.project(), [{"action": "moveTo", "instance_path": path},
+                                               {"action": "mouseButtonClick", "mouse_button": "left"}])
+        except StudioMCPError as e:
+            raise bridge.BridgeError(502, f"the click on {args.get('id')} didn't happen: {e}") from None
+        return {"clicked": str(args.get("id") or path), "how": "a real mouse click (Roblox Studio's MCP server)"}
+
+    def _input(self, args):
+        """`input`: a ContextActionService action is pressed by its key, for real (Roblox doesn't let a script call
+        an action's function); a ProximityPrompt is the client agent's."""
+        from .studio_mcp import StudioMCPError
+
+        found = self._play_call("input", {**args, "host_input": True}) or {}
+        keys = found.get("host_keys") or []
+        if not keys:
+            return found
+        code, mode = str(keys[0]), str(args.get("mode") or "press")
+        try:
+            if mode == "hold":
+                with self.cond:
+                    self.held[f"action:{args.get('action')}"] = (code, float("inf"))
+                self._keys([{"action": "keyDown", "key_code": code}])
+            elif mode == "release":
+                self._release([f"action:{args.get('action')}"])
+            else:
+                self._keys([{"action": "keyDown", "key_code": code}, {"action": "wait", "wait_time_ms": KEY_TAP_MS},
+                            {"action": "keyUp", "key_code": code}])
+        except StudioMCPError as e:
+            raise bridge.BridgeError(502, f"the action {args.get('action')} wasn't pressed: {e}") from None
+        return {"did": f"real key {code} (action {args.get('action')})"}
 
     def _session(self, args):
         """`session` while a play test runs (status, start) and `restart`: stop the play test (the server's
@@ -424,6 +665,8 @@ class Session:
             else:
                 self._answer(rid, error=f"{NO_GAME} ({why})", status=409)
         if ch.context != "edit":
+            with self.cond:
+                self.held.clear()  # (the keys were down in the play test that ended)
             self.link.feed({"type": "events", "events": [{"kind": "session", "running": False, "why": why}]})
 
     def reap(self, now=None):
@@ -435,6 +678,9 @@ class Session:
             self.detach(context, f"the Roblox plugin ({context}) stopped polling")
 
     def close(self, why):
+        self._stop_recording()
+        if self.held and self.real_input:
+            self._release(list(self.held))
         with self.cond:
             self.closed = True
             self.cond.notify_all()
@@ -458,7 +704,15 @@ class RobloxBridge:
     """The HTTP front door for Roblox plugins. on_link(link) is called with each new session's Link (serve_local
     hands it out as it does a WebSocket plugin's)."""
 
-    def __init__(self, on_link, host="127.0.0.1", port=PORT, secret=None, screenshots=None, shoot=None):
+    def __init__(self, on_link, host="127.0.0.1", port=PORT, secret=None, screenshots=None, shoot=None,
+                 studio="auto"):
+        """studio: a studio_mcp.StudioMCP for pictures and real input ("auto": Studio's own, where it's installed;
+        None: none)."""
+        if studio == "auto":
+            from .studio_mcp import StudioMCP
+
+            studio = StudioMCP()
+        self.studio = studio
         self.on_link = on_link
         self.secret = secret if secret is not None else token()
         self.sessions = {}
@@ -492,6 +746,8 @@ class RobloxBridge:
         self.server.server_close()
         for s in list(self.sessions.values()):
             s.close("the agent service stopped")
+        if self.studio is not None:
+            self.studio.close()
 
     def _reaper(self):
         while not self._stop.wait(5.0):
@@ -554,11 +810,13 @@ class RobloxBridge:
         if resumed is not None:
             resumed.attach("edit")
             resumed.link.hello = {**resumed.link.hello, **body}
+            if resumed.pictures:
+                resumed.link.hello["features"] = sorted(set(body.get("features") or []) | {"media"})
             resumed.link.last_heartbeat = time.time()
             s = resumed
         else:
             body = {**body, "engine": body.get("engine") or "roblox"}
-            s = Session(body, self.screenshots, self.shoot)
+            s = Session(body, self.screenshots, self.shoot, self.studio)
             s.link.loopback = True
             s.link.auth_token, s.link.mode = _auth(h.headers)
             with self._lock:

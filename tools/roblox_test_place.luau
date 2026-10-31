@@ -188,6 +188,16 @@ status.BackgroundTransparency = 0.3
 status.TextScaled = true
 status.Text = "Collect the coins"
 status.Parent = gui
+local shop = Instance.new("TextButton")
+shop.Name = "ShopButton"
+shop.Size = UDim2.fromOffset(120, 40)
+shop.Position = UDim2.new(0, 20, 0.5, 0)
+shop.Text = "Shop"
+shop.Parent = gui
+shop.Activated:Connect(function()
+	player:SetAttribute("ShopClicks", (player:GetAttribute("ShopClicks") or 0) + 1)
+	status.Text = "The shop is closed today"
+end)
 gui.Parent = player:WaitForChild("PlayerGui")
 
 ContextActionService:BindAction("Wave", function(_, state)

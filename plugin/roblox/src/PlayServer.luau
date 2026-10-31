@@ -1,17 +1,17 @@
 --!strict
 -- The plugin in a play test's server: attaches to the edit instance's session (StudioTestService:GetTestArgs() names
--- it; a play test started with Studio's own Play button joins the newest session) and answers the game's requests:
--- world reads, rc, watch here; what the player sees and does through the client agent (ClientAgent.luau). Sends
--- heartbeats, LogService's warnings and errors (`log` events) and `log_error` findings. `session stop` ends the test
--- (StudioTestService:EndTest).
+-- it; a play test started with Studio's own Play button joins the dock's session) and answers the game's requests:
+-- world reads, rc, watch here; what the player sees and does through the client agent (ClientAgent.luau), which it
+-- puts in each player's PlayerGui (Agent.luau). Sends heartbeats, LogService's warnings and errors (`log` events) and
+-- `log_error` findings. `session stop` ends the test (StudioTestService:EndTest).
 
 local LogService = game:GetService("LogService")
 local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local StudioTestService = game:GetService("StudioTestService")
 local Workspace = game:GetService("Workspace")
 
+local Agent = require(script.Parent.Agent)
 local Config = require(script.Parent.Config)
 local Json = require(script.Parent.Json)
 local Link = require(script.Parent.Link)
@@ -51,8 +51,22 @@ function PlayServer.start(plugin: Plugin)
 		session = kept
 	end
 	local link
-	local remote = ReplicatedStorage:FindFirstChild(Config.REMOTE_NAME) :: RemoteFunction?
-	local events = ReplicatedStorage:FindFirstChild(Config.EVENTS_NAME) :: RemoteEvent?
+	local remote: RemoteFunction?, events: RemoteEvent? = nil, nil
+	local agentProblem: string? = nil
+	pcall(function()
+		remote, events = Agent.remotes()
+	end)
+	local function inject(player: Player)
+		local ok, why = Agent.inject(player)
+		if not ok then
+			agentProblem = why
+			warn("Autopilot: the client agent couldn't be put in the game: " .. tostring(why))
+		end
+	end
+	Players.PlayerAdded:Connect(inject)
+	for _, player in Players:GetPlayers() do
+		task.spawn(inject, player)
+	end
 	local counts: { [string]: number } = {}
 	local clientReady = false
 	local pending: { { [string]: any } } = {}
@@ -107,7 +121,7 @@ function PlayServer.start(plugin: Plugin)
 	local function toClient(op: string, a: { [string]: any }): (boolean, any, number?)
 		local player = Players:GetPlayers()[1]
 		if remote == nil then
-			return false, "the client agent isn't in this play test (start it from the Autopilot dock)", 409
+			return false, "the client agent isn't in this play test: " .. tostring(agentProblem or "no remote"), 409
 		end
 		if player == nil then
 			return false, "No player", 409
@@ -233,13 +247,21 @@ function PlayServer.start(plugin: Plugin)
 	})
 	link:start()
 
-	LogService.MessageOut:Connect(function(message: string, kind: Enum.MessageType)
+	local function onMessage(message: string, kind: Enum.MessageType)
 		if kind == Enum.MessageType.MessageError then
 			logged("Error", message, "server")
 		elseif kind == Enum.MessageType.MessageWarning then
 			logged("Warning", message, "server")
 		end
+	end
+	-- (what the game's scripts said before this instance of the plugin ran: an error as the game starts is often the
+	-- one that matters. No yield between the history and the connection: nothing is missed or said twice)
+	pcall(function()
+		for _, entry in LogService:GetLogHistory() do
+			onMessage(entry.message, entry.messageType)
+		end
 	end)
+	LogService.MessageOut:Connect(onMessage)
 	if events then
 		events.OnServerEvent:Connect(function(_, what, verbosity, message)
 			if what == "ready" then

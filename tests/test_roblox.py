@@ -409,7 +409,7 @@ def test_capture_is_the_hosts_and_off_by_default():
     assert e.value.status == 409 and "AUTOPILOT_ROBLOX_SCREENSHOT" in e.value.error
     with pytest.raises(bridge.BridgeError):
         s.link.request("record", {"action": "start"}, timeout=5)
-    assert s.link.request("record", {"action": "stop"}, timeout=5) == {"recording": False, "frames": 0}
+    assert s.link.request("record", {"action": "stop"}, timeout=5) == {"recording": False}
     shots = []
     s2 = _session(screenshots=True, shoot=lambda max_dim: shots.append(max_dim) or {"jpeg": "eA==", "width": 1})
     assert "media" in s2.link.hello["features"]  # (the brain may take stills: the host takes them)
@@ -424,10 +424,6 @@ def _jpeg(width, height):
 def test_jpeg_size_and_the_screenshot_command(monkeypatch, tmp_path):
     assert roblox_bridge.jpeg_size(_jpeg(1920, 1080)) == (1920, 1080)
     assert roblox_bridge.jpeg_size(b"not a jpeg") == (None, None)
-    with pytest.raises(bridge.BridgeError) as e:
-        roblox_bridge.screenshot()
-    assert e.value.status == 409
-    monkeypatch.setenv(roblox_bridge.SCREENSHOT_ENV, "1")
     ran = []
 
     def run(cmd, **kw):
@@ -444,6 +440,147 @@ def test_jpeg_size_and_the_screenshot_command(monkeypatch, tmp_path):
     monkeypatch.setattr(sys, "platform", "linux")
     with pytest.raises(bridge.BridgeError):
         roblox_bridge.screenshot(run=run)
+
+
+class FakeStudio:
+    """autopilot/studio_mcp.StudioMCP's stand-in: Roblox Studio's MCP server."""
+
+    available = True
+
+    def __init__(self, fail=None):
+        self.calls, self.fail = [], fail
+
+    def capture(self, name):
+        self.calls.append(("capture", name))
+        return _jpeg(1292, 648)
+
+    def keys(self, name, actions):
+        if self.fail:
+            from autopilot.studio_mcp import StudioMCPError
+
+            raise StudioMCPError(self.fail)
+        self.calls.append(("keys", name, actions))
+
+    def mouse(self, name, actions):
+        self.calls.append(("mouse", name, actions))
+
+    def close(self):
+        pass
+
+
+def _play(s, answer, context="server"):
+    """A play channel answering the session's requests with answer(op, args) until the returned event is set."""
+    s.attach(context)
+    stop = threading.Event()
+
+    def run():
+        while not stop.is_set():
+            for f in s.take(context, 0.1):
+                if f.get("type") == "request":
+                    got = answer(f["op"], f.get("args") or {})
+                    s.incoming(context, {"type": "response", "id": f["id"], "ok": True, "result": got})
+
+    threading.Thread(target=run, daemon=True).start()
+    return stop
+
+
+def test_picture_mode_follows_the_environment():
+    assert roblox_bridge.picture_mode(True, {}) == "studio"
+    assert roblox_bridge.picture_mode(False, {}) is None
+    assert roblox_bridge.picture_mode(True, {roblox_bridge.SCREENSHOT_ENV: "screen"}) == "screen"
+    assert roblox_bridge.picture_mode(False, {roblox_bridge.SCREENSHOT_ENV: "1"}) == "screen"
+    assert roblox_bridge.picture_mode(True, {roblox_bridge.SCREENSHOT_ENV: "0"}) is None
+
+
+def test_pictures_and_recording_come_from_studio_mcp(monkeypatch):
+    monkeypatch.delenv(roblox_bridge.SCREENSHOT_ENV, raising=False)
+    studio = FakeStudio()
+    s = _session(studio=studio)
+    assert s.pictures == "studio" and "media" in s.link.hello["features"] and s.real_input
+    shot = s.link.request("capture", {"max_dim": 1280}, timeout=5)
+    assert (shot["width"], shot["height"]) == (1292, 648) and "StudioMCP" in shot["source"]
+    assert studio.calls[0] == ("capture", "Obby")  # (the Studio whose place is the plugin's project)
+    frames = []
+    s.link.frame_listeners.append(frames.append)
+    assert s.link.request("record", {"action": "start", "fps": 30}, timeout=5)["fps"] == roblox_bridge.MAX_RECORD_FPS
+    assert s.wait_for(lambda: len(frames) >= 2, 5)
+    assert s.link.request("record", {"action": "stop"}, timeout=5) == {"recording": False}
+    assert frames[0]["type"] == "frame" and frames[0]["n"] == 1 and frames[0]["jpeg"] and frames[0]["wall"]
+    assert _session(studio=types.SimpleNamespace(available=False)).pictures is None
+
+
+def test_real_keys_clicks_and_actions_go_through_studio_mcp():
+    studio = FakeStudio()
+    s = _session(studio=studio)
+    asked = []
+
+    def answer(op, args):
+        asked.append((op, args))
+        if op == "ui_act":
+            return {"id": args["id"], "click_path": "LocalPlayer.PlayerGui.Hud.Shop"}
+        if op == "input":
+            return {"host_keys": ["F"]}
+        return {"did": "semantic"}
+
+    assert s.target("key", {"key": "E"}) is None  # (no play test: 409, real input or not)
+    stop = _play(s, answer)
+    try:
+        assert s.target("key", {"key": "W"}) == "server" and s.target("key", {"key": "SpaceBar"}) == "server"
+        assert s.target("key", {"key": "E"}) == "host" and s.target("ui_act", {}) == "host"
+        assert s.link.request("key", {"key": "E"}, timeout=5) == {"did": "real key E"}
+        assert studio.calls[-1][2][0] == {"action": "keyDown", "key_code": "E"}
+        s.link.request("key", {"key": "Enter"}, timeout=5)
+        assert studio.calls[-1][2][-1] == {"action": "keyUp", "key_code": "Return"}  # (Unreal names: KeyCode names)
+        assert s.link.request("key", {"key": "W", "mode": "hold"}, timeout=5) == {"did": "semantic"}
+        clicked = s.link.request("ui_act", {"id": "Hud.Shop", "action": "click"}, timeout=5)
+        assert clicked["clicked"] == "Hud.Shop" and asked[-1] == ("ui_act", {"id": "Hud.Shop", "action": "click",
+                                                                             "host_input": True})
+        assert studio.calls[-1][2][0] == {"action": "moveTo", "instance_path": "LocalPlayer.PlayerGui.Hud.Shop"}
+        assert s.link.request("input", {"action": "Wave"}, timeout=5)["did"].startswith("real key F")
+        # A leased hold: down once, renewed, up when the lease runs out
+        studio.calls.clear()
+        s.link.request("key", {"key": "Q", "mode": "hold", "lease": 0.3}, timeout=5)
+        s.link.request("key", {"key": "Q", "mode": "hold"}, timeout=5)
+        assert [c[2][0]["action"] for c in studio.calls] == ["keyDown"]
+        assert s.wait_for(lambda: not s.held, 3)
+        time.sleep(0.1)
+        assert studio.calls[-1][2] == [{"action": "keyUp", "key_code": "Q"}]
+        # release_all lets go of the real keys and passes on to the game's agent
+        s.link.request("key", {"key": "R", "mode": "hold", "seconds": 30}, timeout=5)
+        s.link.request("key", {"mode": "release_all"}, timeout=5)
+        assert not s.held and studio.calls[-1][2] == [{"action": "keyUp", "key_code": "R"}]
+        assert asked[-1] == ("key", {"mode": "release_all"})
+    finally:
+        stop.set()
+
+
+def test_a_real_key_studio_mcp_refuses_is_pressed_by_the_game_s_agent():
+    s = _session(studio=FakeStudio(fail="no Roblox Studio with the place 'Obby'"))
+    stop = _play(s, lambda op, args: {"note": "E isn't bound to anything"})
+    try:
+        answer = s.link.request("key", {"key": "E"}, timeout=5)
+        assert "no real key" in answer["note"] and "Obby" in answer["note"]
+    finally:
+        stop.set()
+
+
+def test_studio_mcp_picks_the_studio_with_the_plugin_s_place(tmp_path):
+    from autopilot import studio_mcp
+
+    assert studio_mcp.find({studio_mcp.ENV: "0"}) is None
+    assert studio_mcp.find({studio_mcp.ENV: str(tmp_path / "nope")}) is None
+    exe = tmp_path / "StudioMCP"
+    exe.write_text("")
+    assert studio_mcp.find({studio_mcp.ENV: str(exe)}) == str(exe)
+    sm = studio_mcp.StudioMCP(path=str(exe))
+    listed = {"studios": [{"id": "a", "name": "VR Mini Golf"}, {"id": "b", "name": "Place1"}]}
+    sm.call = lambda tool, args, timeout=None: [{"type": "text", "text": __import__("json").dumps(listed)}]
+    assert sm.choose("Place1") == "b"
+    sm.studio = None
+    with pytest.raises(studio_mcp.StudioMCPError):
+        sm.choose("Obby")  # (never another place's Studio)
+    listed = {"studios": [{"id": "c", "name": "Obby.rbxl"}]}
+    assert sm.choose("Obby") == "c"
 
 
 def test_a_channel_that_stops_polling_is_dropped_and_its_requests_fail():
@@ -519,7 +656,7 @@ class FakePlugin:
 @pytest.fixture
 def rbx():
     links = []
-    rb = roblox_bridge.RobloxBridge(links.append, port=0, secret=TOKEN, screenshots=False)
+    rb = roblox_bridge.RobloxBridge(links.append, port=0, secret=TOKEN, screenshots=False, studio=None)
     rb.links = links
     yield rb
     rb.shutdown()

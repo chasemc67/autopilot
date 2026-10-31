@@ -1,7 +1,7 @@
 --!strict
 -- The plugin in the edit DataModel: the toolbar button and the dock, and the session with the agent service (hello
--- "host": "editor"). It answers what needs no game: `session` (start: puts the client agent in the place and starts a
--- play test with StudioTestService:ExecutePlayModeAsync; status), `codex_manifest`, `codex_read`, and `context` /
+-- "host": "editor"). It answers what needs no game: `session` (start: a play test with
+-- StudioTestService:ExecutePlayModeAsync, whose server puts the client agent in the game; status), `codex_manifest`, `codex_read`, and `context` /
 -- `ping` while no play test runs. The bridge sends the game's requests to the play test's server instead
 -- (PlayServer.luau). Frames that aren't requests (status, result, ...) are shown in the dock.
 
@@ -38,7 +38,8 @@ function EditHost.start(plugin: Plugin)
 	end
 
 	local function engineVersion(): string
-		local ok, v = pcall(version)
+		-- selene: allow(undefined_variable)
+		local ok, v = pcall(version) -- (Luau's global: Studio's version)
 		return ok and tostring(v) or ""
 	end
 
@@ -84,10 +85,6 @@ function EditHost.start(plugin: Plugin)
 		if type(map) == "string" and map ~= "" and map ~= game.Name then
 			return false, string.format("Roblox Studio plays the open place (%s) only: no map %s", game.Name, map), 400
 		end
-		local ok, why = Agent.insert()
-		if not ok then
-			return false, why, 500
-		end
 		testRunning = true
 		task.spawn(function()
 			local done, problem = pcall(function()
@@ -97,7 +94,6 @@ function EditHost.start(plugin: Plugin)
 				})
 			end)
 			testRunning = false
-			Agent.remove()
 			if not done then
 				warn("Autopilot: the play test couldn't run: " .. tostring(problem))
 			end

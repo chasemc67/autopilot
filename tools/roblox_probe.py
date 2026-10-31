@@ -6,6 +6,8 @@ share port 8766).
     python tools/roblox_probe.py call <op> ['{"json": "args"}'] [--timeout 30]
     python tools/roblox_probe.py frames [--since N]                        # the plugin's frames (events, ...) so far
     python tools/roblox_probe.py sessions
+    python tools/roblox_probe.py luau <file.luau> [--dm Edit|Server|Client] [--place Place1]  # run Luau in Studio
+                                                                           # through StudioMCP's execute_luau
 
 Every frame the plugin sends is appended to the log (one JSON object a line, with a receive time).
 """
@@ -121,7 +123,22 @@ def main(argv=None):
     f = sub.add_parser("frames")
     f.add_argument("--since", type=int, default=0)
     sub.add_parser("sessions")
+    lu = sub.add_parser("luau")
+    lu.add_argument("file")
+    lu.add_argument("--dm", default="Edit")
+    lu.add_argument("--place", default="Place1")
     a = ap.parse_args(argv)
+    if a.cmd == "luau":
+        from autopilot.studio_mcp import StudioMCP
+
+        sm = StudioMCP()
+        with open(a.file, encoding="utf-8") as fh:
+            code = fh.read()
+        out = sm.call("execute_luau", {"studio_id": sm.choose(a.place), "datamodel_type": a.dm, "code": code},
+                      timeout=120)
+        print("\n".join(c.get("text", "") for c in out if c.get("type") == "text"))
+        sm.close()
+        return
     if a.cmd == "serve":
         serve(a)
     elif a.cmd == "call":

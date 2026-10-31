@@ -1,7 +1,8 @@
 --!strict
 -- `screen`, `ui`, `ui_act` in the client agent: the player's PlayerGui. Keys are `<ScreenGui>.<Name>` (a second one of
--- the same key gets `@2`). A GuiButton can't be clicked from Luau (no Activate method; its events can't be fired), so
--- `ui_act` click answers 501; `set` changes a TextBox's text.
+-- the same key gets `@2`). A GuiButton can't be clicked from Luau (no Activate method; its events can't be fired):
+-- `ui_act` click names the button for the bridge (`host_input`), which clicks it for real through Roblox Studio's MCP
+-- server; without it, a click answers 501. `set` changes a TextBox's text.
 
 local Players = game:GetService("Players")
 
@@ -145,9 +146,23 @@ function Gui.act(args: { [string]: any }): (boolean, any, number?)
 		end
 		return false, id .. " has no value to set (only text boxes here)", 400
 	end
+	if args.host_input == true then
+		-- (the element's path below PlayerGui, as Roblox Studio's MCP server names it: LocalPlayer.PlayerGui.<...>)
+		local names = {}
+		local cur: Instance? = g
+		while cur and not cur:IsA("PlayerGui") do
+			table.insert(names, 1, cur.Name)
+			cur = cur.Parent
+		end
+		if cur == nil then
+			return false, id .. " isn't in the player's PlayerGui", 400
+		end
+		return true, { id = id, click_path = "LocalPlayer.PlayerGui." .. table.concat(names, ".") }
+	end
 	return false,
 		"a Roblox plugin can't click GUI buttons (GuiButton has no Activate, and its events can't be fired from "
-			.. "Luau): do what the button's Activated handler does, or report the run as blocked",
+			.. "Luau), and Roblox Studio's MCP server isn't in use for real clicks: do what the button's Activated "
+			.. "handler does, or report the run as blocked",
 		501
 end
 
