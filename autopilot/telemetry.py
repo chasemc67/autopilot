@@ -140,7 +140,9 @@ def llm_usage(body):
     u = body.get("usage")
     if not isinstance(u, dict):
         return body.get("model"), None
-    if "cache_read_input_tokens" in u or "cache_creation_input_tokens" in u or body.get("type") == "message":
+    # (Anthropic's shape; Vercel AI Gateway's chat completions carry cache_creation_input_tokens beside prompt_tokens)
+    if "prompt_tokens" not in u and ("cache_read_input_tokens" in u or "cache_creation_input_tokens" in u) or \
+            body.get("type") == "message":
         return body.get("model"), {"input": u.get("input_tokens") or 0, "output": u.get("output_tokens") or 0,
                                    "cache_read": u.get("cache_read_input_tokens") or 0,
                                    "cache_write": u.get("cache_creation_input_tokens") or 0}

@@ -102,7 +102,8 @@ def test_jevs_cost_as_the_gateway_says_it_is_counted():
 
 
 def test_a_language_models_cost_as_the_gateway_says_it_is_counted():
-    body = {"model": "openai/gpt-6.1-sol", "usage": {"prompt_tokens": 13, "completion_tokens": 5, "cost": 7.6e-05}}
+    body = {"model": "openai/gpt-6.1-sol", "usage": {"prompt_tokens": 13, "completion_tokens": 5, "cost": 7.6e-05,
+                                                     "cache_creation_input_tokens": 0}}  # (as the gateway says it)
     model, usage = telemetry.llm_usage(body)
     assert model == "openai/gpt-6.1-sol" and usage["cost_usd"] == 7.6e-05 and usage["input"] == 13
     u = telemetry.Usage()
