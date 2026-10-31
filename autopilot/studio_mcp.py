@@ -105,7 +105,7 @@ class StudioMCP:
         try:
             self._write({"jsonrpc": "2.0", "id": rid, "method": method, "params": params})
         except (OSError, ValueError) as e:
-            self.close()
+            self._end()
             raise StudioMCPError(f"StudioMCP went away ({e})") from None
         deadline = time.monotonic() + timeout
         with self._cond:
@@ -114,7 +114,7 @@ class StudioMCP:
                 if left <= 0 or self.proc is None or self.proc.poll() is not None:
                     gone = self.proc is None or self.proc.poll() is not None
                     if gone:
-                        self.close()
+                        self._end()
                     raise StudioMCPError(f"StudioMCP {'went away' if gone else 'did not answer'} ({method})")
                 self._cond.wait(min(left, 0.5))
             msg = self._answers.pop(rid)
@@ -123,6 +123,16 @@ class StudioMCP:
         return msg.get("result") or {}
 
     def close(self):
+        # (never in the middle of a call: Studio's pictures broke for good once after StudioMCP went away while one
+        # was being taken)
+        got = self.lock.acquire(timeout=CALL_TIMEOUT + 5)
+        try:
+            self._end()
+        finally:
+            if got:
+                self.lock.release()
+
+    def _end(self):
         proc, self.proc = self.proc, None
         if proc is not None:
             try:

@@ -1,0 +1,84 @@
+Harness CoinExploreHarness  goal: "Explore the coin system for bugs: pick coins up in different orders and ways (walking in, jumping over them), walk back over spots where coins were taken (does anything count twice?), and watch the count, the door (should open once the count reaches 5; Coin3 is worth 2) and the HUD. Prefer what hasn't been tried yet (see 'tried'): every coin has been walked into in earlier episodes, so this episode: once a coin or two is held, walk off the world edge to die, then check the count after respawning and collect the rest."
+Ended: status done at t=175.3s  status=done note='all coins taken and their spots revisited' evidence={"coins": 6, "coins_left": 0, "door_open": true, "hud": "Collect the coins", "log": [{"t": 2.7, "count": 1, "delta": 1, "gone": ["Coin1"], "door_open": false}, {"t": 72.5, "event": "falling out of the world", "count": 1}, {"t": 76.8, "event": "respawned", "count": 1, "at": [0.0, 0.0, 112.0], "door_open": false}, {"t": 84.2, "count": 2, "delta": 1, "gone": ["Coin2"], "door_open": false}, {"t": 89.3
+Decisions by Jev: 14
+
+Options (started / worked / failed / unknown / interrupted / timed out):
+  walk_over_taken_spots: 3 / 3 / 0 / 0 / 0 / 0 / 0
+  collect_Coin1: 1 / 1 / 0 / 0 / 0 / 0 / 0
+  walk_off_world_edge: 1 / 1 / 0 / 0 / 0 / 0 / 0
+  collect_Coin2: 1 / 1 / 0 / 0 / 0 / 0 / 0
+  collect_Coin4: 1 / 1 / 0 / 0 / 0 / 0 / 0
+  collect_Coin5: 1 / 1 / 0 / 0 / 0 / 0 / 0
+  collect_Coin3: 1 / 0 / 0 / 0 / 1 / 0 / 0
+  collect_Coin1 ended because: coin gone x1
+  walk_off_world_edge ended because: {'coins_before': 1, 'coins_after_respawn': 1, 'respawned': 1, 'at': [0.0, 0.0, 1 x1
+  collect_Coin2 ended because: coin gone x1
+  collect_Coin4 ended because: coin gone x1
+  walk_over_taken_spots ended because: walked over 4 taken spots x2; walked over 3 taken spots x1
+  collect_Coin5 ended because: coin gone x1
+  collect_Coin3 ended because: episode ended (status done) x1
+
+Executor steps (steps, ms a step median/p90/max, waits on the game a step mean/max; a tick is 67 ms at tick_hz 15, the loop ran 2.8 ticks/s):
+  walk_over_taken_spots: 207 steps, 285/435/709 ms, 1.4/4 waits
+  walk_off_world_edge: 203 steps, 416/434/484 ms, 1.5/6 waits
+  collect_Coin5: 17 steps, 431/583/925 ms, 2.0/6 waits
+  collect_Coin1: 16 steps, 132/232/314 ms, 1.7/6 waits
+  collect_Coin2: 15 steps, 284/585/908 ms, 1.8/6 waits
+  (idle): 13 steps, 0/0/0 ms, 0.0/0 waits
+  collect_Coin4: 13 steps, 254/567/926 ms, 1.6/6 waits
+  collect_Coin3: 10 steps, 432/923/923 ms, 2.0/6 waits
+
+Timeline (t: option, p, how it ended, seconds):
+  t=   0.6 collect_Coin1 p=1.00 -> worked (coin gone) 2.43s
+  t=   3.2 walk_off_world_edge p=1.00 -> worked ({'coins_before': 1, 'coins_after_respawn': 1, 'respawned': 1, 'at': [0) 74.82s
+  t=  78.3 collect_Coin2 p=1.00 -> worked (coin gone) 6.13s
+  t=  84.9 collect_Coin4 p=1.00 -> worked (coin gone) 4.65s
+  t=  90.1 walk_over_taken_spots p=1.00 -> worked (walked over 3 taken spots) 18.87s
+  t= 109.5 collect_Coin5 p=1.00 -> worked (coin gone) 7.22s
+  t= 117.3 walk_over_taken_spots p=1.00 -> worked (walked over 4 taken spots) 25.26s
+  t= 142.7 walk_over_taken_spots p=1.00 -> worked (walked over 4 taken spots) 27.84s
+  t= 171.1 collect_Coin3 p=1.00 -> stopped (episode ended (status done)) 4.25s
+
+Jev: 14 answers, latency median 0.00s; actions {'started': 9, 'kept': 3, 'kept_running': 2}
+First decision Jev saw (state): {"goal": "Explore the coin system for bugs: pick coins up in different orders and ways (walking in, jumping over them), walk back over spots where coins were taken (does anything count twice?), and watch the count, the door (should open once the count reaches 5; Coin3 is worth 2) and the HUD. Prefer what hasn't been tried yet (see 'tried'): every coin has been walked into in earlier episodes, so this episode: once a coin or two is held, walk off the world edge to die, then check the count after respawning and collect the rest.", "situation": {"coins": 0, "coins_left": 5, "coins_left_worth": 6, "door_open": false, "hud_status": "Collect the coins", "tried": {}, "anomalies_seen": 0}, "options": {"collect_Coin1": {"coin": {"distance": 560, "direction": "right", "bearing": 90, "height": -28}, "value": 1, "tried": 0}, "collect_Coin2": {"coin": {"distance": 1066, "direction": "right", "bearing": 113, "height": -28}, "value": 1, "tried": 0}, "collect_Coin3": {"coin": {"distance": 1066, "direction": "right", "bearing": 67, "height": -28}, "value": 2, "tried": 0}, "collect_Coin4": {"coin": {"distance": 1540, "direction": "right", "bearing": 90, "height": -28}, "value": 1, "tried": 0}, "collect_Coin5": {"coin": {"distance": 896, "direction": "behind-right", "bearing": 141, "height": -28}, "value": 1, "tried": 0}}, "now_doing": null, "recent": []}
+Its answer: {"collect_Coin1": 1.0, "collect_Coin2": 0.0, "collect_Coin3": 0.0, "collect_Coin4": 0.0, "collect_Coin5": 0.0}
+
+Situation over time (every ~5 s):
+  t=   0.6 {"coins": 0, "coins_left": 5, "coins_left_worth": 6, "door_open": false, "hud_status": "Collect the coins", "tried": {}, "anomalies_seen": 0}  [running] options=['collect_Coin1', 'collect_Coin2', 'collect_Coin3', 'collect_Coin4', 'collect_Coin5']
+  t=   6.8 {"coins": 1, "coins_left": 4, "coins_left_worth": 5, "door_open": false, "hud_status": "Collect the coins", "tried": {"collect_Coin1": 1, "walk_off_world_edge": 1}, "anomalies_seen": 0}  [running] options=['walk_off_world_edge', 'collect_Coin2', 'collect_Coin3', 'collect_Coin4', 'collect_Coin5', 'walk_over_taken_spots']
+  t=  12.4 {"coins": 1, "coins_left": 4, "coins_left_worth": 5, "door_open": false, "hud_status": "Collect the coins", "tried": {"collect_Coin1": 1, "walk_off_world_edge": 1}, "anomalies_seen": 0}  [running] options=['walk_off_world_edge', 'collect_Coin2', 'collect_Coin3', 'collect_Coin4', 'collect_Coin5', 'walk_over_taken_spots']
+  t=  18.0 {"coins": 1, "coins_left": 4, "coins_left_worth": 5, "door_open": false, "hud_status": "Collect the coins", "tried": {"collect_Coin1": 1, "walk_off_world_edge": 1}, "anomalies_seen": 0}  [running] options=['walk_off_world_edge', 'collect_Coin2', 'collect_Coin3', 'collect_Coin4', 'collect_Coin5', 'walk_over_taken_spots']
+  t=  23.5 {"coins": 1, "coins_left": 4, "coins_left_worth": 5, "door_open": false, "hud_status": "Collect the coins", "tried": {"collect_Coin1": 1, "walk_off_world_edge": 1}, "anomalies_seen": 0}  [running] options=['walk_off_world_edge', 'collect_Coin2', 'collect_Coin3', 'collect_Coin4', 'collect_Coin5', 'walk_over_taken_spots']
+  t=  29.1 {"coins": 1, "coins_left": 4, "coins_left_worth": 5, "door_open": false, "hud_status": "Collect the coins", "tried": {"collect_Coin1": 1, "walk_off_world_edge": 1}, "anomalies_seen": 0}  [running] options=['walk_off_world_edge', 'collect_Coin2', 'collect_Coin3', 'collect_Coin4', 'collect_Coin5', 'walk_over_taken_spots']
+  t=  34.7 {"coins": 1, "coins_left": 4, "coins_left_worth": 5, "door_open": false, "hud_status": "Collect the coins", "tried": {"collect_Coin1": 1, "walk_off_world_edge": 1}, "anomalies_seen": 0}  [running] options=['walk_off_world_edge', 'collect_Coin2', 'collect_Coin3', 'collect_Coin4', 'collect_Coin5', 'walk_over_taken_spots']
+  t=  40.2 {"coins": 1, "coins_left": 4, "coins_left_worth": 5, "door_open": false, "hud_status": "Collect the coins", "tried": {"collect_Coin1": 1, "walk_off_world_edge": 1}, "anomalies_seen": 0}  [running] options=['walk_off_world_edge', 'collect_Coin2', 'collect_Coin3', 'collect_Coin4', 'collect_Coin5', 'walk_over_taken_spots']
+  t=  45.8 {"coins": 1, "coins_left": 4, "coins_left_worth": 5, "door_open": false, "hud_status": "Collect the coins", "tried": {"collect_Coin1": 1, "walk_off_world_edge": 1}, "anomalies_seen": 0}  [running] options=['walk_off_world_edge', 'collect_Coin2', 'collect_Coin3', 'collect_Coin4', 'collect_Coin5', 'walk_over_taken_spots']
+  t=  51.4 {"coins": 1, "coins_left": 4, "coins_left_worth": 5, "door_open": false, "hud_status": "Collect the coins", "tried": {"collect_Coin1": 1, "walk_off_world_edge": 1}, "anomalies_seen": 0}  [running] options=['walk_off_world_edge', 'collect_Coin2', 'collect_Coin3', 'collect_Coin4', 'collect_Coin5', 'walk_over_taken_spots']
+  t=  57.0 {"coins": 1, "coins_left": 4, "coins_left_worth": 5, "door_open": false, "hud_status": "Collect the coins", "tried": {"collect_Coin1": 1, "walk_off_world_edge": 1}, "anomalies_seen": 0}  [running] options=['walk_off_world_edge', 'collect_Coin2', 'collect_Coin3', 'collect_Coin4', 'collect_Coin5', 'walk_over_taken_spots']
+  t=  62.5 {"coins": 1, "coins_left": 4, "coins_left_worth": 5, "door_open": false, "hud_status": "Collect the coins", "tried": {"collect_Coin1": 1, "walk_off_world_edge": 1}, "anomalies_seen": 0}  [running] options=['walk_off_world_edge', 'collect_Coin2', 'collect_Coin3', 'collect_Coin4', 'collect_Coin5', 'walk_over_taken_spots']
+  t=  68.1 {"coins": 1, "coins_left": 4, "coins_left_worth": 5, "door_open": false, "hud_status": "Collect the coins", "tried": {"collect_Coin1": 1, "walk_off_world_edge": 1}, "anomalies_seen": 0}  [running] options=['walk_off_world_edge', 'collect_Coin2', 'collect_Coin3', 'collect_Coin4', 'collect_Coin5', 'walk_over_taken_spots']
+  t=  73.5 {"coins": 1, "coins_left": 4, "coins_left_worth": 5, "door_open": false, "hud_status": "Collect the coins", "tried": {"collect_Coin1": 1, "walk_off_world_edge": 1}, "anomalies_seen": 0}  [running] options=['walk_off_world_edge', 'collect_Coin2', 'collect_Coin3', 'collect_Coin4', 'collect_Coin5', 'walk_over_taken_spots']
+  t=  79.6 {"coins": 1, "coins_left": 4, "coins_left_worth": 5, "door_open": false, "hud_status": "Collect the coins", "tried": {"collect_Coin1": 1, "walk_off_world_edge": 1, "collect_Coin2": 1}, "anomalies_seen": 0}  [running] options=['collect_Coin2', 'collect_Coin3', 'collect_Coin4', 'collect_Coin5', 'walk_over_taken_spots']
+  t=  84.9 {"coins": 2, "coins_left": 3, "coins_left_worth": 4, "door_open": false, "hud_status": "Collect the coins", "tried": {"collect_Coin1": 1, "walk_off_world_edge": 1, "collect_Coin2": 1}, "anomalies_seen": 0}  [running] options=['collect_Coin3', 'collect_Coin4', 'collect_Coin5', 'walk_over_taken_spots']
+  t=  90.1 {"coins": 3, "coins_left": 2, "coins_left_worth": 3, "door_open": false, "hud_status": "Collect the coins", "tried": {"collect_Coin1": 1, "walk_off_world_edge": 1, "collect_Coin2": 1, "collect_Coin4": 1}, "anomalies_seen": 0}  [running] options=['collect_Coin3', 'collect_Coin5', 'walk_over_taken_spots']
+  t=  95.6 {"coins": 3, "coins_left": 2, "coins_left_worth": 3, "door_open": false, "hud_status": "Collect the coins", "tried": {"collect_Coin1": 1, "walk_off_world_edge": 1, "collect_Coin2": 1, "collect_Coin4": 1, "walk_over_taken_spots": 1}, "anomalies_seen": 0}  [running] options=['collect_Coin3', 'collect_Coin5', 'walk_over_taken_spots']
+  t= 100.9 {"coins": 3, "coins_left": 2, "coins_left_worth": 3, "door_open": false, "hud_status": "Collect the coins", "tried": {"collect_Coin1": 1, "walk_off_world_edge": 1, "collect_Coin2": 1, "collect_Coin4": 1, "walk_over_taken_spots": 1}, "anomalies_seen": 0}  [running] options=['collect_Coin3', 'collect_Coin5', 'walk_over_taken_spots']
+  t= 106.6 {"coins": 3, "coins_left": 2, "coins_left_worth": 3, "door_open": false, "hud_status": "Collect the coins", "tried": {"collect_Coin1": 1, "walk_off_world_edge": 1, "collect_Coin2": 1, "collect_Coin4": 1, "walk_over_taken_spots": 1}, "anomalies_seen": 0}  [running] options=['collect_Coin3', 'collect_Coin5', 'walk_over_taken_spots']
+  t= 111.9 {"coins": 3, "coins_left": 2, "coins_left_worth": 3, "door_open": false, "hud_status": "Collect the coins", "tried": {"collect_Coin1": 1, "walk_off_world_edge": 1, "collect_Coin2": 1, "collect_Coin4": 1, "walk_over_taken_spots": 1, "collect_Coin5": 1}, "anomalies_seen": 0}  [running] options=['collect_Coin3', 'collect_Coin5', 'walk_over_taken_spots']
+  t= 117.1 {"coins": 4, "coins_left": 1, "coins_left_worth": 2, "door_open": false, "hud_status": "Collect the coins", "tried": {"collect_Coin1": 1, "walk_off_world_edge": 1, "collect_Coin2": 1, "collect_Coin4": 1, "walk_over_taken_spots": 1, "collect_Coin5": 1}, "anomalies_seen": 0}  [running] options=['collect_Coin3', 'walk_over_taken_spots']
+  t= 123.9 {"coins": 4, "coins_left": 1, "coins_left_worth": 2, "door_open": false, "hud_status": "Collect the coins", "tried": {"collect_Coin1": 1, "walk_off_world_edge": 1, "collect_Coin2": 1, "collect_Coin4": 1, "walk_over_taken_spots": 2, "collect_Coin5": 1}, "anomalies_seen": 0}  [running] options=['collect_Coin3', 'walk_over_taken_spots']
+  t= 129.6 {"coins": 4, "coins_left": 1, "coins_left_worth": 2, "door_open": false, "hud_status": "Collect the coins", "tried": {"collect_Coin1": 1, "walk_off_world_edge": 1, "collect_Coin2": 1, "collect_Coin4": 1, "walk_over_taken_spots": 2, "collect_Coin5": 1}, "anomalies_seen": 0}  [running] options=['collect_Coin3', 'walk_over_taken_spots']
+  t= 134.8 {"coins": 4, "coins_left": 1, "coins_left_worth": 2, "door_open": false, "hud_status": "Collect the coins", "tried": {"collect_Coin1": 1, "walk_off_world_edge": 1, "collect_Coin2": 1, "collect_Coin4": 1, "walk_over_taken_spots": 2, "collect_Coin5": 1}, "anomalies_seen": 0}  [running] options=['collect_Coin3', 'walk_over_taken_spots']
+  t= 139.9 {"coins": 4, "coins_left": 1, "coins_left_worth": 2, "door_open": false, "hud_status": "Collect the coins", "tried": {"collect_Coin1": 1, "walk_off_world_edge": 1, "collect_Coin2": 1, "collect_Coin4": 1, "walk_over_taken_spots": 2, "collect_Coin5": 1}, "anomalies_seen": 0}  [running] options=['collect_Coin3', 'walk_over_taken_spots']
+  t= 145.6 {"coins": 4, "coins_left": 1, "coins_left_worth": 2, "door_open": false, "hud_status": "Collect the coins", "tried": {"collect_Coin1": 1, "walk_off_world_edge": 1, "collect_Coin2": 1, "collect_Coin4": 1, "walk_over_taken_spots": 3, "collect_Coin5": 1}, "anomalies_seen": 0}  [running] options=['collect_Coin3', 'walk_over_taken_spots']
+  t= 151.9 {"coins": 4, "coins_left": 1, "coins_left_worth": 2, "door_open": false, "hud_status": "Collect the coins", "tried": {"collect_Coin1": 1, "walk_off_world_edge": 1, "collect_Coin2": 1, "collect_Coin4": 1, "walk_over_taken_spots": 3, "collect_Coin5": 1}, "anomalies_seen": 0}  [running] options=['collect_Coin3', 'walk_over_taken_spots']
+  t= 157.3 {"coins": 4, "coins_left": 1, "coins_left_worth": 2, "door_open": false, "hud_status": "Collect the coins", "tried": {"collect_Coin1": 1, "walk_off_world_edge": 1, "collect_Coin2": 1, "collect_Coin4": 1, "walk_over_taken_spots": 3, "collect_Coin5": 1}, "anomalies_seen": 0}  [running] options=['collect_Coin3', 'walk_over_taken_spots']
+  t= 162.6 {"coins": 4, "coins_left": 1, "coins_left_worth": 2, "door_open": false, "hud_status": "Collect the coins", "tried": {"collect_Coin1": 1, "walk_off_world_edge": 1, "collect_Coin2": 1, "collect_Coin4": 1, "walk_over_taken_spots": 3, "collect_Coin5": 1}, "anomalies_seen": 0}  [running] options=['collect_Coin3', 'walk_over_taken_spots']
+  t= 168.2 {"coins": 4, "coins_left": 1, "coins_left_worth": 2, "door_open": false, "hud_status": "Collect the coins", "tried": {"collect_Coin1": 1, "walk_off_world_edge": 1, "collect_Coin2": 1, "collect_Coin4": 1, "walk_over_taken_spots": 3, "collect_Coin5": 1}, "anomalies_seen": 0}  [running] options=['collect_Coin3', 'walk_over_taken_spots']
+  t= 173.5 {"coins": 4, "coins_left": 1, "coins_left_worth": 2, "door_open": false, "hud_status": "Collect the coins", "tried": {"collect_Coin1": 1, "walk_off_world_edge": 1, "collect_Coin2": 1, "collect_Coin4": 1, "walk_over_taken_spots": 3, "collect_Coin5": 1, "collect_Coin3": 1}, "anomalies_seen": 0}  [running] options=['collect_Coin3', 'walk_over_taken_spots']
+  t= 174.8 {"coins": 4, "coins_left": 1, "coins_left_worth": 2, "door_open": false, "hud_status": "Collect the coins", "tried": {"collect_Coin1": 1, "walk_off_world_edge": 1, "collect_Coin2": 1, "collect_Coin4": 1, "walk_over_taken_spots": 3, "collect_Coin5": 1, "collect_Coin3": 1}, "anomalies_seen": 0}  [running] options=['collect_Coin3', 'walk_over_taken_spots']
+
+What the game's own detectors and error log reported (count, first time):
+  x2 t=0.3 game_log: [Warning] server: ContentId: rbxassetid://203785492 failed due to: Asset type does not match requested type
+  x1 t=0.0 game_log: [Error] server: Workspace.Sign.SignText:3: attempt to index nil with 'TextLabel'
+  x1 t=0.0 finding: Workspace.Sign.SignText:3: attempt to index nil with 'TextLabel'

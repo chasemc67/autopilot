@@ -940,3 +940,30 @@ def test_studio_mcp_finds_studio_again_after_a_restart(tmp_path):
     studios["now"] = "new"  # (Studio restarted: a new id for the same place)
     assert sm.capture("Place1")[:2] == b"\xff\xd8" and sm.studio == ("new", "Place1")
     assert calls[-3:] == [("screen_capture", "old"), ("list_roblox_studios", None), ("screen_capture", "new")]
+
+
+def test_no_picture_is_taken_while_the_play_test_starts_or_stops(monkeypatch):
+    # (a picture taken then can hang in Studio: checked live)
+    monkeypatch.setattr(roblox_bridge, "SETTLE_SECONDS", 0.3)
+    studio = FakeStudio()
+    s = _session(studio=studio)
+    s.link.post("session", {"action": "start"})  # (to the edit channel: the play test starts)
+    assert time.monotonic() < s._settle_at
+    got = {}
+    t = threading.Thread(target=lambda: got.update(shot=s.picture()))
+    t.start()
+    time.sleep(0.3)
+    assert "shot" not in got and not studio.calls  # (held: no play channel yet)
+    s.attach("server")
+    t.join(5)
+    assert got["shot"]["width"] == 1292 and studio.calls == [("capture", "Obby")]
+    s.detach("server", "the play test ended")
+    assert time.monotonic() < s._settle_at
+
+
+def test_a_play_test_from_before_the_agent_service_restarted_joins_the_new_session(rbx):
+    edit = FakePlugin(rbx.url)
+    edit.hello()
+    server = FakePlugin(rbx.url, context="server", session="roblox-from-an-earlier-agent-service")
+    server.attach()
+    assert server.session == edit.session and not rbx.sessions[edit.session].channels["server"].gone

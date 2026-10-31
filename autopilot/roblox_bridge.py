@@ -77,6 +77,11 @@ KEYCODES = {"SpaceBar": "Space", "Enter": "Return", "BackSpace": "Backspace", "L
             "NumPadEight": "KeypadEight", "NumPadNine": "KeypadNine"}
 KEY_TAP_MS = 60  # a real key press: down, this long, up
 MAX_RECORD_FPS = 4.0  # a StudioMCP picture takes ~0.3 s
+# A picture taken while a play test starts or stops can hang in Studio, and Studio's pictures stayed broken for good
+# once (checked live): none is taken from a `session` start / stop / restart until SETTLE_SECONDS after the play test's
+# channel came or went (SETTLE_HOLD at most, should it never come)
+SETTLE_SECONDS = 2.0
+SETTLE_HOLD = 45.0
 
 
 def port():
@@ -230,6 +235,7 @@ class Session:
         self.lease = 1.0
         self._ticker = None
         self._recorder = None  # (thread, stop event, counts) while recording
+        self._settle_at = 0.0  # (monotonic) no picture before this: a play test starting or stopping
         hello = dict(hello)
         if self.pictures:  # (the brain takes stills itself: the plugin can't)
             hello["features"] = sorted(set(hello.get("features") or []) | {"media"})
@@ -284,6 +290,8 @@ class Session:
             self._queue("edit", frame)
             return
         op, args = str(frame.get("op") or ""), frame.get("args") or {}
+        if op == "session" and str(args.get("action") or "status") in ("start", "stop", "restart"):
+            self._settle_at = time.monotonic() + SETTLE_HOLD  # (until the play test's channel comes or goes)
         where = self.target(op, args)
         if where == "host":
             threading.Thread(target=self._host_op, args=(frame,), daemon=True).start()
@@ -381,6 +389,11 @@ class Session:
                                           "screenshots of the whole screen instead)")
         from .studio_mcp import StudioMCPError
 
+        deadline = time.monotonic() + 15.0
+        while time.monotonic() < self._settle_at:
+            if time.monotonic() >= deadline or self.closed:
+                raise bridge.BridgeError(409, "no picture: the play test is starting or stopping")
+            time.sleep(0.1)
         try:
             data = self.studio.capture(self.project())
         except StudioMCPError as e:
@@ -414,6 +427,9 @@ class Session:
     def _recording(self, stop, fps, max_dim):
         n, misses = 0, 0
         while not stop.is_set() and not self.closed:
+            if self.pictures == "studio" and time.monotonic() < self._settle_at:
+                stop.wait(0.1)  # (the play test is starting or stopping: no frame now)
+                continue
             started = time.monotonic()
             try:
                 shot = self.picture(max_dim)
@@ -585,6 +601,8 @@ class Session:
 
     def attach(self, context):
         """A channel joins (again). A play channel that joins while one of its kind is there replaces it."""
+        if context != "edit":
+            self._settle_at = time.monotonic() + SETTLE_SECONDS
         replaced, failed = None, []
         with self.cond:
             old = self.channels.get(context)
@@ -646,6 +664,8 @@ class Session:
     def _drop(self, ch):
         """A channel ends (under the lock): the ids of the brain's requests it held, unanswered (see _fail)."""
         ch.gone = True
+        if ch.context != "edit":
+            self._settle_at = time.monotonic() + SETTLE_SECONDS
         routed, ch.routed = list(ch.routed), set()
         waiting = [f for f in ch.frames if f.get("type") == "request"]
         ch.frames.clear()
@@ -830,7 +850,9 @@ class RobloxBridge:
         context = body.get("context")
         if context not in ("server", "client"):
             return 400, {"error": "context must be server or client"}
-        s = self._session(body)
+        # (a session this bridge doesn't know: the agent service restarted while the play test ran, and the edit
+        # plugin said hello again into a new one: the play test joins that, the newest)
+        s = self._session(body) or self._session({})
         if s is None:
             return 404, {"error": "no Autopilot session: open the Autopilot dock in the edit window first"}
         s.attach(context)

@@ -288,7 +288,7 @@ Limits:
 - `pause` and `timestep` do nothing; one player, Play mode (not Run, not Team Test).
 - Studio's MCP server acts on the Studio whose place has the plugin's place name: with two open places of the same
   name, the first one listed.
-- The dock's result box is small: the verdict shows, the summary needs scrolling (or read it in your agent).
+- The dock shows a run's verdict and its reason or notes; it is small, so a long result needs scrolling.
 
 ## 9. The Roblox Player (not Studio)
 
