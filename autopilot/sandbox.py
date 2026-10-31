@@ -54,6 +54,9 @@ def child_env(memory):
     env = {k: v for k, v in os.environ.items() if not secret.search(k)}
     env.update(PYTHONPATH=HERE, PYTHONUNBUFFERED="1", PYTHONIOENCODING="utf-8", AUTOPILOT_MEMORY=memory,
                AUTOPILOT_SANDBOX="child")
+    from .runtime import JEV_VIA, jev_via
+
+    env[JEV_VIA] = jev_via()  # (how Jev is reached, for the child's trace: it holds no key to tell by)
     return env
 
 

@@ -135,6 +135,31 @@ def jev_model():
     return (os.environ.get("AUTOPILOT_JEV_MODEL") or "").strip() or JEV_MODEL
 
 
+def jev_route(client=None):
+    """Which Jev plays and how it is reached, for the trace: {"model", "via"}; via "stand-in" (StandInJev), "aura"
+    (Aura's relay), "gateway" (Vercel AI Gateway) or "typesafe" (TYPESAFE_BASE_URL, TypeSafe's own by default). None
+    for a client of a test's own."""
+    inner = getattr(client, "_client", client)  # (telemetry.CountingJev's)
+    if isinstance(inner, StandInJev) or (client is None and standin()):
+        return {"model": StandInJev.model, "via": "stand-in"}
+    if client is not None and not hasattr(inner, "models") and type(inner).__name__ != "RemoteJev":
+        return None
+    return {"model": jev_model(), "via": jev_via()}
+
+
+JEV_VIA = "AUTOPILOT_JEV_VIA"  # (set for the sandbox's child by its parent: sandbox.child_env)
+
+
+def jev_via():
+    """How Jev is reached now: "stand-in", "aura", "gateway" or "typesafe" (in the sandbox's child: as its parent
+    said, the child holding no key)."""
+    if os.environ.get("AUTOPILOT_SANDBOX") == "child" and os.environ.get(JEV_VIA):
+        return os.environ[JEV_VIA]
+    from . import aura, gateway
+
+    return "stand-in" if standin() else "aura" if aura.enabled() else "gateway" if gateway.enabled() else "typesafe"
+
+
 def _keep_warm(ref, http, used):
     """Keeps Jev's connection open and its server awake until the client is closed or dropped."""
     first = True
@@ -681,7 +706,7 @@ class Runtime:
     def _run(self):
         g, h = self.game, self.h
         self.trace("start", harness=type(h).__name__, goal=h.goal, tempo=h.tempo, tick_hz=h.tick_hz,
-                   max_seconds=self.max_seconds)
+                   max_seconds=self.max_seconds, jev=jev_route(self.client))
         self.still("episode_start")
         end = {"reason": "", "status": None}
         try:
@@ -1131,7 +1156,9 @@ def summarize(trace_path, max_timeline=50, error_log=False):
         st = end.get("status") or {}
         out.append(f"Ended: {end.get('reason')} at t={end.get('t', 0) - t_first:.1f}s  status={st.get('state')} "
                    f"note={st.get('note')!r} evidence={json.dumps(st.get('evidence'))[:400]}")
-        out.append(f"Decisions by Jev: {end.get('decisions')}")
+        jev = start.get("jev") or {}
+        via = f" ({jev.get('model')}, via {jev.get('via')})" if jev.get("model") else ""
+        out.append(f"Decisions by Jev: {end.get('decisions')}{via}")
     else:
         out.append("Ended: (no end event: the run crashed or is still going)")
     spans, since = [], None

@@ -230,3 +230,18 @@ def test_frames_are_described_through_the_gateway(monkeypatch, with_key):
 
 def test_no_gateway_route_without_a_key(no_model_env):
     assert vision.route(vision.GATEWAY) == (None, "there is no gateway key")
+
+
+def test_the_trace_and_the_log_say_which_jev_played_and_what_the_run_used(monkeypatch, with_key):
+    from autopilot import sandbox
+
+    assert runtime.jev_route() == {"model": runtime.JEV_MODEL, "via": "gateway"}
+    assert sandbox.child_env("/m")[runtime.JEV_VIA] == "gateway" and KEY not in sandbox.child_env("/m").values()
+    monkeypatch.setenv("AUTOPILOT_SANDBOX", "child")  # (the child holds no key: its parent says)
+    monkeypatch.delenv(gateway.KEY_ENV)
+    monkeypatch.setenv(runtime.JEV_VIA, "gateway")
+    assert runtime.jev_route()["via"] == "gateway"
+    u = telemetry.Usage()
+    u.add("decision", "jev-1.13.0", input=300, output=30, cost_usd=0.0000126)
+    assert telemetry.usage_line(u.snapshot()) == ("Usage: decision jev-1.13.0: 1 calls, 300 in / 30 out tokens, "
+                                                  "$0.000013")

@@ -120,6 +120,18 @@ def decision_cost(r):
         return None
 
 
+def usage_line(models):
+    """A run's usage (Usage.snapshot()) in one line: per model its calls, tokens and, where the API said, cost."""
+    parts = []
+    for m in models:
+        cost = f", ${m['cost_usd']:.6f}" if "cost_usd" in m else ""
+        cache = f", cache {m['cache_read']} read / {m['cache_write']} written" if m["cache_read"] or m["cache_write"] \
+            else ""
+        parts.append(f"{m['kind']} {m['model']}: {m['calls']} calls, {m['input']} in / {m['output']} out tokens"
+                     f"{cache}{cost}")
+    return "Usage: " + ("; ".join(parts) if parts else "none counted")
+
+
 def llm_usage(body):
     """(model, {input, output, cache_read, cache_write}) from a language model API's response (Anthropic's Messages,
     OpenAI's chat completions or responses); usage None when it says none."""
@@ -534,6 +546,7 @@ class RunTelemetry:
         if self.proxy is not None:
             self.proxy.close()
         self.send_usage(final=True)
+        print(usage_line(self.usage.snapshot()))  # (the agent service's log: what the run used, per model)
         if self.share:
             try:
                 self.keep_memory("memory_after")
