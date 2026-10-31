@@ -1,9 +1,12 @@
 --!strict
 -- The plugin's link to the brain over HTTP (autopilot/roblox_bridge.py): a Studio plugin can't hold a WebSocket or
--- listen, so it long-polls. One loop keeps a poll waiting at the bridge for the brain's frames; another sends what the
--- plugin has to say (answers, events) as soon as there is some, and takes any frames the bridge has meanwhile. Every
--- request carries the token (X-Autopilot-Token). The edit instance says hello; a play test's server attaches to its
--- session.
+-- listen, so it long-polls. Studio holds a play test's server to Roblox's HttpService budget (about 500 requests a
+-- minute: checked live, docs/roblox-live-test-log.md), so each request does as much as it can: the poll that brings
+-- the brain's requests is followed, once their answers are ready (MAX_ANSWER_WAIT), by the next poll carrying them,
+-- which then waits at the bridge for the next request. One request a question. An answer that comes later (a walk
+-- that takes seconds) goes on its own; events (heartbeats, logs) ride the next poll. Requests are spent from a token
+-- bucket (REQUESTS_PER_SECOND on average, bursts of REQUEST_BURST). Every request carries the token
+-- (X-Autopilot-Token). The edit instance says hello; a play test's server attaches to its session.
 
 local HttpService = game:GetService("HttpService")
 
@@ -28,11 +31,15 @@ function Link.new(options: Options)
 	self.context = options.context
 	self.session = options.session
 	self.outbox = {} :: { string } -- frames as JSON text
+	self.urgent = 0 -- (how many of them are answers: they don't wait for the next poll)
 	self.connected = false
 	self.closed = false
 	self.problem = nil :: string?
-	self._next = 0 -- (os.clock() before which no request goes: the rate limit)
-	self._rate = Config.MAX_REQUESTS_PER_SECOND
+	self._rate = Config.REQUESTS_PER_SECOND
+	self._tokens = Config.REQUEST_BURST
+	self._filled = os.clock()
+	self._polling = false -- (a poll is waiting at the bridge)
+	self._inflight = 0 -- (requests of the brain's being answered)
 	self._wake = Instance.new("BindableEvent")
 	return self
 end
@@ -45,13 +52,15 @@ end
 
 -- POST to an endpoint: (ok, status code, decoded body or nil).
 function Link:_post(name: string, bodyText: string): (boolean, number, any)
-	local gap = 1 / self._rate
-	local t = os.clock()
-	if t < self._next then
-		self._next += gap
-		task.wait(self._next - gap - t)
-	else
-		self._next = t + gap
+	while true do
+		local t = os.clock()
+		self._tokens = math.min(Config.REQUEST_BURST, self._tokens + (t - self._filled) * self._rate)
+		self._filled = t
+		if self._tokens >= 1 then
+			self._tokens -= 1
+			break
+		end
+		task.wait((1 - self._tokens) / self._rate)
 	end
 	local ok, res = pcall(function()
 		return HttpService:RequestAsync({
@@ -67,6 +76,7 @@ function Link:_post(name: string, bodyText: string): (boolean, number, any)
 		if string.find(low, "exceeded", 1, true) or string.find(low, "too many", 1, true) then
 			-- (Studio's HttpService request limit: slow down, for good)
 			self._rate = math.max(Config.MIN_REQUESTS_PER_SECOND, self._rate / 2)
+			self._tokens = 0
 			warn(string.format("Autopilot: HTTP request limit reached, now at most %g a second", self._rate))
 		end
 		return false, 0, why
@@ -130,24 +140,46 @@ function Link:_exchange(frames: { string }, wait: number): boolean
 	end
 	if type(answer) == "table" and type(answer.frames) == "table" then
 		for _, frame in answer.frames do
-			task.spawn(self.options.onFrame, frame)
+			self._inflight += 1
+			task.spawn(function()
+				pcall(self.options.onFrame, frame)
+				self._inflight -= 1
+			end)
 		end
 	end
 	return true
 end
 
--- Queue a frame for the brain.
-function Link:send(frame: { [string]: any })
-	self:sendText(Json.encode(frame))
+-- What the outbox holds now, emptied.
+function Link:_takeOutbox(): { string }
+	local batch = self.outbox
+	self.outbox, self.urgent = {}, 0
+	return batch
 end
 
--- Queue a frame already written as JSON.
-function Link:sendText(text: string)
+function Link:_putBack(batch: { string })
+	for _, text in self.outbox do
+		table.insert(batch, text)
+	end
+	self.outbox = batch
+	self.urgent = #batch
+end
+
+-- Queue a frame for the brain (anything but events goes at once; events ride the next poll).
+function Link:send(frame: { [string]: any })
+	self:sendText(Json.encode(frame), frame.type ~= "events")
+end
+
+-- Queue a frame already written as JSON (urgent: an answer, which goes at once).
+function Link:sendText(text: string, urgent: boolean?)
 	if self.closed then
 		return
 	end
 	table.insert(self.outbox, text)
-	self._wake:Fire()
+	if urgent ~= false then
+		self.urgent += 1
+		self._wake:Fire()
+	end
 end
 
 function Link:_pollLoop()
@@ -161,7 +193,17 @@ function Link:_pollLoop()
 			end
 			backoff = 1
 		end
-		if not self:_exchange({}, Config.POLL_WAIT) then
+		-- (the answers to what the last poll brought ride this one, when they're ready soon)
+		local started = os.clock()
+		while self._inflight > 0 and os.clock() - started < Config.MAX_ANSWER_WAIT do
+			task.wait()
+		end
+		local batch = self:_takeOutbox()
+		self._polling = true
+		local ok = self:_exchange(batch, Config.POLL_WAIT)
+		self._polling = false
+		if not ok then
+			self:_putBack(batch)
 			self:_state("lost", self.problem)
 			task.wait(backoff)
 			backoff = math.min(backoff * 2, 15)
@@ -171,27 +213,20 @@ function Link:_pollLoop()
 	end
 end
 
+-- Answers that come while a poll waits at the bridge go on their own.
 function Link:_sendLoop()
 	while not self.closed do
-		if #self.outbox == 0 then
+		if self.urgent == 0 then
 			self._wake.Event:Wait()
-		end
-		if self.closed then
-			break
-		end
-		if not self.connected then
-			task.wait(0.25)
 			continue
 		end
-		task.wait() -- (a frame's worth of answers and events go together)
-		local batch = self.outbox
-		self.outbox = {}
+		if not self.connected or not self._polling then
+			task.wait() -- (no poll waiting: the poll loop takes the outbox with its next poll)
+			continue
+		end
+		local batch = self:_takeOutbox()
 		if not self:_exchange(batch, 0) then
-			-- (put them back, first: answers must not be lost to a dropped request)
-			for _, text in self.outbox do
-				table.insert(batch, text)
-			end
-			self.outbox = batch
+			self:_putBack(batch) -- (answers must not be lost to a dropped request)
 			task.wait(0.5)
 		end
 	end
