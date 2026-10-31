@@ -1,0 +1,26 @@
+{
+ "outcome": "CONFIRMED",
+ "summary": "The agent walked into all five coins using movement input only. Each touch removed the coin and raised leaderstats Coins by exactly that coin's Value attribute: 0\u21921\u21923\u21924\u21925\u21926 (Coin3 is worth 2). No pickup failed to count, and none counted twice. The episode made no direct changes to the game. The only game errors logged were the known SignText error and an asset-type warning, neither from the coins.",
+ "evidence": [
+  "runs/20261031-140602/trace1.jsonl: Coin5 (Value 1) gone at t=5.33, Coins 0->1",
+  "trace1: Coin3 (Value 2) gone at t=12.48, Coins 1->3",
+  "trace1: Coin1 (Value 1) gone at t=18.09, Coins 3->4",
+  "trace1: Coin4 (Value 1) gone at t=24.94, Coins 4->5",
+  "trace1: Coin2 (Value 1) gone at ~t=30.8, Coins 5->6; the episode ended done with 0 coins left",
+  "Probe before play (read only): leaderstats Coins = 0 at start; coin values [1,1,2,1,1]",
+  "Game log during the episode: Workspace.Sign.SignText:3 'attempt to index nil with TextLabel' (t=0.0) and a ContentId asset-type warning (t=0.3), both unrelated to coins"
+ ],
+ "visual": false,
+ "run": "20261031-140602",
+ "project": "Place1",
+ "prompt": "Verify that touching a coin increases leaderstats Coins",
+ "seconds": 82.4,
+ "episodes": 1,
+ "tool_seconds": 34.3,
+ "stopped": null,
+ "level_modified": [],
+ "research_modified": [],
+ "agent": "external",
+ "client": "claude-code",
+ "model": null
+}

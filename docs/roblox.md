@@ -170,7 +170,11 @@ can't. The bridge (`autopilot/studio_mcp.py`) starts one when it first needs it 
   client. ContextActionService bindings, UserInputService handlers, ProximityPrompts' own keys, the backpack's number
   keys and GUI buttons all see them.
 - It only acts on the Studio instance whose place is the plugin's (`hello.project`, the place's name, or
-  `<name>.rbxl`): never on another place that happens to be open.
+  `<name>.rbxl`): never on another place that happens to be open. When Studio restarts (a new id), it finds it again.
+- **No picture while a play test starts or stops.** A `screen_capture` in flight then can hang, and once left Studio's
+  pictures broken until Studio restarted (VERIFIED, log round 5). The bridge takes none from a `session` start / stop
+  / restart until 2 s after the play test's channel came or went; the recording skips those seconds. StudioMCP is
+  never stopped in the middle of a call.
 
 `AUTOPILOT_ROBLOX_STUDIO_MCP` names the executable (`0` turns it off). `AUTOPILOT_ROBLOX_SCREENSHOT` picks the
 pictures: `studio` (the default), `screen` (a screenshot of the whole screen: macOS `screencapture`, Windows
@@ -266,7 +270,8 @@ outputs: [roblox-live-test-log.md](roblox-live-test-log.md).
 | Logs and `log_error` findings, server and client, start-up errors | VERIFIED | log rounds 1-3 |
 | Latency within Studio's HttpService budget | 17 ms server / 67 ms client answers, 7 a second sustained, no refusals | log round 3 |
 | The edit place untouched by runs | VERIFIED | log round 2 |
-| The four prompt kinds through `autopilot serve` + Claude Code (Autopilot's MCP server, skill and describer) | see the log, round 4 | [e2e-*](roblox-live-evidence/) |
+| The four prompt kinds through `autopilot serve` + Claude Code (Autopilot's MCP server, skill and describer) | Verification CONFIRMED (twice), Goal achieved, Testing and Exploration explored with real bugs found; every run reported | log round 4, [e2e-*](roblox-live-evidence/), [07](roblox-live-evidence/07-e2e-goal-reached.jpg), [10](roblox-live-evidence/10-dock-final-verdict.png) |
+| Pictures across Studio restarts and play restarts; a play test rejoining after the agent service restarts | VERIFIED after fixes | log round 5 |
 | `tests/test_roblox.py`, the full suite, `stylua`, `selene`, `rojo build` | passing / clean | |
 | Windows, Team Test, a published place, Rojo-synced places | UNVERIFIED | |
 
@@ -288,6 +293,8 @@ Limits:
 - `pause` and `timestep` do nothing; one player, Play mode (not Run, not Team Test).
 - Studio's MCP server acts on the Studio whose place has the plugin's place name: with two open places of the same
   name, the first one listed.
+- Recordings skip about 2 s around each play test start and stop (see "Pictures and real input").
+- If Studio's pictures ever stop answering (`capture` 409, "did not answer"), restart Studio.
 - The dock shows a run's verdict and its reason or notes; it is small, so a long result needs scrolling.
 
 ## 9. The Roblox Player (not Studio)

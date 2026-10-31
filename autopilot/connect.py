@@ -106,7 +106,8 @@ def plugin_files():
     from . import __version__
 
     manifest = {"name": NAME, "version": __version__, "description": "Playtest the game open in your Unreal, Unity, "
-                "Godot or Roblox Studio editor with Autopilot, on your own Claude plan.", "author": {"name": "Ramen VR"},
+                "Godot or Roblox Studio editor with Autopilot, on your own Claude plan.",
+                "author": {"name": "Ramen VR"},
                 "homepage": "https://github.com/ramenvr/autopilot", "license": "Apache-2.0"}
     servers = {"mcpServers": {NAME: {"command": "autopilot", "args": ["mcp"]}}}
     return {".claude-plugin/plugin.json": json.dumps(manifest, indent=2) + "\n",

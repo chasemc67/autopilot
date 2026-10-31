@@ -1,0 +1,48 @@
+Harness CoinTouchHarness  goal: 'Walk into coins to pick them up; each coin touched should raise the leaderstats Coins count by its value'
+Ended: status done at t=30.8s  status=done note="every coin touched; Coins rose by each one's value" evidence={"pickups": [{"coin": "Coin5", "value": 1, "coins_before": 0, "coins_after": 1, "t": 5.33}, {"coin": "Coin3", "value": 2, "coins_before": 1, "coins_after": 3, "t": 12.48}, {"coin": "Coin1", "value": 1, "coins_before": 3, "coins_after": 4, "t": 18.09}, {"coin": "Coin4", "value": 1, "coins_before": 4, "coins_after": 5, "t": 24.94}, {"coin": "Coin2", "value": 1, "coins_before": 5, "coins_after": 6, "
+Decisions by Jev: 8
+
+Options (started / worked / failed / unknown / interrupted / timed out):
+  collect_Coin5: 1 / 1 / 0 / 0 / 0 / 0 / 0
+  collect_Coin3: 1 / 1 / 0 / 0 / 0 / 0 / 0
+  collect_Coin1: 1 / 1 / 0 / 0 / 0 / 0 / 0
+  collect_Coin4: 1 / 1 / 0 / 0 / 0 / 0 / 0
+  collect_Coin2: 1 / 0 / 0 / 0 / 1 / 0 / 0
+  collect_Coin5 ended because: coin gone x1
+  collect_Coin3 ended because: coin gone x1
+  collect_Coin1 ended because: coin gone x1
+  collect_Coin4 ended because: coin gone x1
+  collect_Coin2 ended because: episode ended (status done) x1
+
+Executor steps (steps, ms a step median/p90/max, waits on the game a step mean/max; a tick is 67 ms at tick_hz 15, the loop ran 2.5 ticks/s):
+  collect_Coin5: 18 steps, 218/716/1105 ms, 2.7/11 waits
+  collect_Coin3: 15 steps, 407/584/920 ms, 1.9/6 waits
+  collect_Coin4: 15 steps, 412/567/914 ms, 1.9/6 waits
+  collect_Coin1: 13 steps, 283/567/916 ms, 1.7/6 waits
+  collect_Coin2: 11 steps, 431/584/856 ms, 2.1/6 waits
+  (idle): 4 steps, 0/0/0 ms, 0.0/0 waits
+
+Timeline (t: option, p, how it ended, seconds):
+  t=   0.5 collect_Coin5 p=1.00 -> worked (coin gone) 5.85s
+  t=   6.6 collect_Coin3 p=1.00 -> worked (coin gone) 6.28s
+  t=  13.5 collect_Coin1 p=1.00 -> worked (coin gone) 5.0s
+  t=  19.1 collect_Coin4 p=1.00 -> worked (coin gone) 6.29s
+  t=  25.9 collect_Coin2 p=1.00 -> stopped (episode ended (status done)) 4.85s
+
+Jev: 8 answers, latency median 0.00s; actions {'started': 4, 'kept_running': 3, 'kept': 1}
+First decision Jev saw (state): {"goal": "Walk into coins to pick them up; each coin touched should raise the leaderstats Coins count by its value", "situation": {"leaderstats_coins": 0, "coins_left": 5, "coins_picked_up": 0}, "options": {"collect_Coin1": {"coin": {"distance": 560, "direction": "right", "bearing": 90, "height": -28}, "value": 1}, "collect_Coin2": {"coin": {"distance": 1066, "direction": "right", "bearing": 113, "height": -28}, "value": 1}, "collect_Coin3": {"coin": {"distance": 1066, "direction": "right", "bearing": 67, "height": -28}, "value": 2}, "collect_Coin4": {"coin": {"distance": 1540, "direction": "right", "bearing": 90, "height": -28}, "value": 1}, "collect_Coin5": {"coin": {"distance": 896, "direction": "behind-right", "bearing": 141, "height": -28}, "value": 1}}, "now_doing": null, "recent": []}
+Its answer: {"collect_Coin1": 0.0, "collect_Coin2": 0.0, "collect_Coin3": 0.0, "collect_Coin4": 0.0, "collect_Coin5": 1.0}
+
+Situation over time (every ~5 s):
+  t=   0.5 {"leaderstats_coins": 0, "coins_left": 5, "coins_picked_up": 0}  [running] options=['collect_Coin1', 'collect_Coin2', 'collect_Coin3', 'collect_Coin4', 'collect_Coin5']
+  t=   6.1 {"leaderstats_coins": 1, "coins_left": 4, "coins_picked_up": 1}  [running] options=['collect_Coin1', 'collect_Coin2', 'collect_Coin3', 'collect_Coin4']
+  t=  11.8 {"leaderstats_coins": 1, "coins_left": 4, "coins_picked_up": 1}  [running] options=['collect_Coin1', 'collect_Coin2', 'collect_Coin3', 'collect_Coin4']
+  t=  17.4 {"leaderstats_coins": 3, "coins_left": 3, "coins_picked_up": 2}  [running] options=['collect_Coin1', 'collect_Coin2', 'collect_Coin4']
+  t=  23.0 {"leaderstats_coins": 4, "coins_left": 2, "coins_picked_up": 3}  [running] options=['collect_Coin2', 'collect_Coin4']
+  t=  29.0 {"leaderstats_coins": 5, "coins_left": 1, "coins_picked_up": 4}  [running] options=['collect_Coin2']
+  t=  30.3 {"leaderstats_coins": 5, "coins_left": 1, "coins_picked_up": 4}  [running] options=['collect_Coin2']
+
+What the game's own detectors and error log reported (count, first time):
+  x2 t=0.3 game_log: [Warning] server: ContentId: rbxassetid://203785492 failed due to: Asset type does not match requested type
+  x1 t=0.0 game_log: [Error] server: Workspace.Sign.SignText:3: attempt to index nil with 'TextLabel'
+  x1 t=0.0 finding: Workspace.Sign.SignText:3: attempt to index nil with 'TextLabel'

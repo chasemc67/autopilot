@@ -195,3 +195,74 @@ Every run: Claude Code loaded the `autopilot` skill, called `start_run`, read IN
 place's scripts), probed the live game, wrote `harness.py`, ran episodes (`run_harness`) in which the stand-in chose
 among the harness's options, and called `report`. Each episode was recorded through Studio's MCP server
 (`media/recording-N.mp4`). The dock showed the result.
+
+Results (reports and episode summaries copied to `docs/roblox-live-evidence/e2e-*/`):
+
+| Kind | Prompt | Outcome | Time | What the report said |
+|---|---|---|---|---|
+| Verification | "Use Autopilot to verify that touching a coin increases leaderstats Coins" | **CONFIRMED** | 2.8 min, 2 episodes | Coins 0→1→3→4→5→6, each pickup by its coin's Value (Coin3 = 2); first episode stalled after one coin (the stand-in switched targets), the agent changed its harness and went on ([e2e-verify](roblox-live-evidence/e2e-verify/), [05](roblox-live-evidence/05-e2e-verify-recording-frame.jpg), dock: [06](roblox-live-evidence/06-dock-shows-verify-result.png)) |
+| Goal | "Use Autopilot to collect all coins and reach the goal pad" | **achieved** | 1.6 min, 1 episode (30.8 s of play) | all coins, door open, goal pad, "You win!" ([e2e-goal](roblox-live-evidence/e2e-goal/), [07](roblox-live-evidence/07-e2e-goal-reached.jpg)) |
+| Testing | "Use Autopilot to go through the place and tell me everything that looks wrong" | **explored** | 9.3 min, 3 episodes | 2 bugs: **the goal pad is reachable with 0 coins by walking around either end of the wall** (not planted: a real hole in the test level), **the sign's script errors at start** (planted; seen in the game log as `log_error`); smaller: "You win!" never clears, the HUD never shows the coin count, the lever does nothing ([e2e-testing](roblox-live-evidence/e2e-testing/)) |
+| Exploration | "Use Autopilot to explore the coin system" | **explored** | 9.8 min, 4 episodes | coin rules held (walking, jumping into coins, death and respawn mid-way, door at 5); notes that **with Coin3 worth 2 the door opens with 4 of 5 coins** (the planted bug, reported as a design note), the HUD gives no count, the sign errors ([e2e-explore](roblox-live-evidence/e2e-explore/)) |
+| Verification, final code | same as the first | **CONFIRMED** | 1.5 min, 1 episode | recording kept (112 frames), loop 2.5 ticks a second ([e2e-verify-final](roblox-live-evidence/e2e-verify-final/), [09](roblox-live-evidence/09-e2e-verify-final-recording-frame.jpg), dock: [10](roblox-live-evidence/10-dock-final-verdict.png)) |
+
+Every run ended with `report` and a result in the dock. The episode summaries say "Decisions by Jev" because that
+is the runtime's wording; with `AUTOPILOT_JEV_STANDIN` they are the stand-in's (the trace's raw answers say
+`"model": "local-stand-in"`).
+
+Verdict: the full flow works end to end on Roblox Studio with the user's Claude Code. The gap is only the decision
+model (no TypeSafe key or Aura here): how well Jev plays a Roblox game is untested.
+
+## Round 5: 2026-10-31 14:25-15:10 PDT: pictures across Studio restarts and play restarts
+
+Found while checking the e2e runs' recordings:
+
+1. **The Testing and Exploration runs had no recordings** (`media/` empty). `autopilot serve` kept running across a
+   Studio restart, and the bridge's StudioMCP client kept the old Studio's id: every capture failed ("studio_id is
+   not connected"), so recording never started (and real keys fell back to the semantic ones). Fix (`3870b6c`): a
+   call that fails on a kept id finds Studio again and tries once more. Live: capture → Studio restarted → capture
+   with the same bridge process: OK.
+2. **A picture taken while a play test starts or stops hangs in Studio.** The final-code Verification run (before
+   this fix) received 109 frames, none during its episode, and the episode-end capture timed out. Afterwards Studio's
+   `screen_capture` timed out for every client (Autopilot's and this session's own Studio MCP), in Play and in Edit,
+   until Studio was restarted: it stayed broken for that Studio session. Reproduced: recording at 4 a second across
+   `session restart` → no frames for a while after each restart; captures made right after a restart, with none in
+   flight during it, were fine (0.17 s each). Fix (`5847168`): no picture from a `session` start / stop / restart
+   request until 2 s after the play test's channel comes or goes; the recorder skips frames meanwhile; StudioMCP is
+   never terminated in the middle of a call (the wedge followed the agent service being stopped while one was
+   outstanding).
+3. **A play test running when the agent service restarts couldn't rejoin.** The edit plugin said hello again into a
+   new session; the play server kept attaching to the old id (unknown: 404) and every `restart` failed after 65 s.
+   Fix (`5847168`): an attach naming an unknown session joins the newest.
+
+Live, after the fixes (the probe restarted mid-play first):
+
+```
+context client_agent True             (the running play test rejoined)
+record True
+before restart 0 frames/3s: 11
+restart True 1.41 s
+after restart 0 frames/5s: 12         (≈ 2 s held, then 4 a second)
+before restart 1 frames/3s: 12 ... restart True 1.27 s ... after restart 1 frames/5s: 12
+before restart 2 frames/3s: 12 ... restart True 1.35 s ... after restart 2 frames/5s: 11
+capture True 0.18 s
+```
+
+Then the final-code Verification e2e (table above): CONFIRMED, 112 frames kept in the episode's video.
+
+## Final checks
+
+```
+$ python -m pytest tests -q
+498 passed, 5 skipped in 287.90s
+$ cd plugin/roblox && stylua --check src && selene src     # and selene on the built single file
+0 errors, 0 warnings, 0 parse errors
+$ rojo build default.project.json -o /tmp/Autopilot.rbxm
+Built project to Autopilot.rbxm
+$ ruff check autopilot tools tests
+All checks passed!
+```
+
+State left behind: Roblox Studio open on the unsaved Baseplate ("Place1", the test game in it, never saved), the
+Autopilot plugin installed in `~/Documents/Roblox/Plugins` (`autopilot roblox uninstall` removes it), no
+`autopilot serve` or probe running.

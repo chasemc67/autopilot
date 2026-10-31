@@ -5,7 +5,8 @@
 UserInputService, GUI buttons see them). The bridge starts one StudioMCP (stdio, JSON-RPC) and keeps it.
 
     AUTOPILOT_ROBLOX_STUDIO_MCP   the StudioMCP executable (default: inside Studio's app bundle / install folder;
-                                  "0" turns StudioMCP off: then no pictures but a whole-screen screenshot, no real input)
+                                  "0" turns StudioMCP off: then no pictures but a whole-screen screenshot, no real
+                                  input)
 """
 
 import base64

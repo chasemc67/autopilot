@@ -103,11 +103,12 @@ def standin():
 
 
 def jev_client(warm=True):
-    """Jev's client (the local stand-in instead, with AUTOPILOT_JEV_STANDIN set: StandInJev). Its connection is kept open across idle stretches (the agent thinking between episodes, a long
-    option), and while warm, a light call (the model list) is made at once and whenever Jev has been idle for
-    WARM_EVERY: a decision made after an idle stretch, a dodge, never waits on a new connection or a server waking.
-    Bodies go uncompressed: the SDK zstd-compresses them wherever zstd is importable (Python 3.14+), and Aura's relay
-    doesn't pass Content-Encoding on to TypeSafe."""
+    """Jev's client (the local stand-in instead, with AUTOPILOT_JEV_STANDIN set: StandInJev). Its connection is kept
+    open across idle stretches (the agent thinking between episodes, a long option), and while warm, a light call
+    (the model list) is made at once and whenever Jev has been idle for WARM_EVERY: a decision made after an idle
+    stretch, a dodge, never waits on a new connection or a server waking. Bodies go uncompressed: the SDK
+    zstd-compresses them wherever zstd is importable (Python 3.14+), and Aura's relay doesn't pass Content-Encoding
+    on to TypeSafe."""
     if standin():
         return StandInJev(standin())
     import httpx2
